@@ -47,7 +47,7 @@ the master branch to try new features before release.
 
 BioSequences is tested against Julia `1.X` on Linux, OS X, and Windows.
 
-[![](https://travis-ci.org/BioJulia/ReadDatastores.jl.svg?branch=master)](https://travis-ci.org/BioJulia/ReadDatastores.jl)
+[![](https://travis-ci.com/BioJulia/ReadDatastores.jl.svg?branch=master)](https://travis-ci.com/BioJulia/ReadDatastores.jl)
 [![](https://codecov.io/gh/BioJulia/ReadDatastores.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/BioJulia/ReadDatastores.jl)
 
 
