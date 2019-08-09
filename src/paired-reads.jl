@@ -64,7 +64,7 @@ function PairedReadDatastore(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
     
     pairs = discarded = truncated = 0
     
-    @info "Starting datastore build from FASTQ files" sizepos readpos
+    @info "Building paired read datastore from FASTQ files" sizepos readpos
     
     while !eof(rdrx) && !eof(rdry)
         # Read in the two records.
