@@ -174,7 +174,7 @@ end
 bytes_per_read(prds::PRDS) = (prds.chunksize + 1) * sizeof(UInt64)
 @inline unsafe_read_offset_in_file(prds::PRDS, idx::Integer) = prds.readpos_offset + (bytes_per_read(prds) * (idx - 1))
 
-@inline function unsafe_load_read!(prds::PRDS, idx::Integer, seq::LongSequence{DNAAlphabet{4}})
+@inline function inbounds_load_read!(prds::PRDS, idx::Integer, seq::LongSequence{DNAAlphabet{4}})
     seek(prds.stream, unsafe_read_offset_in_file(prds, idx))
     seqlen = read(prds.stream, UInt64)
     resize!(seq, seqlen)
@@ -184,7 +184,7 @@ end
 
 @inline function load_read!(prds::PRDS, idx::Integer, seq::LongSequence{DNAAlphabet{4}})
     checkbounds(prds, idx)
-    return unsafe_load_read!(prds, idx, seq)
+    return inbounds_load_read!(prds, idx, seq)
 end
 
 @inline function Base.checkbounds(prds::PRDS, i::Integer)
@@ -201,7 +201,7 @@ eachindex(prds::PRDS) = Base.OneTo(lastindex(prds))
 @inline function Base.getindex(prds::PRDS, idx::Integer)
     @boundscheck checkbounds(prds, idx)
     seq = LongDNASeq(prds.readsize)
-    return unsafe_load_read!(prds, idx, seq)
+    return inbounds_load_read!(prds, idx, seq)
 end
 
 Base.IteratorSize(prds::PRDS) = Base.HasLength()
