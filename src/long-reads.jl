@@ -34,6 +34,7 @@ const LongDS_Version = 0x0001
 
 function LongReadDatastore(rdr::FASTQ.Reader, outfile::String, name::String, min_size::UInt64)
     n_reads = one(UInt64)
+    discarded = 0
     
     read_to_file_position = ReadPosSize[ReadPosSize(0, 0)]
     ofs = open(outfile, "w")
@@ -52,17 +53,20 @@ function LongReadDatastore(rdr::FASTQ.Reader, outfile::String, name::String, min
     while !eof(rdr)
         read!(rdr, record)
         seq_len = FASTQ.seqlen(record)
-        if seq_len >= min_size
-            offset = position(ofs)
-            resize!(seq, seq_len)
-            copyto!(seq, records)
-            push!(read_to_file_position, ReadPosSize(offset, seq_len))
-            write(ofs, seq.data)
-            n_reads = n_reads + 1
+        if seq_len < min_size
+            discarded = discarded + 1
+            continue
         end
+        offset = position(ofs)
+        resize!(seq, seq_len)
+        copyto!(seq, record)
+        push!(read_to_file_position, ReadPosSize(offset, seq_len))
+        write(ofs, seq.data)
+        n_reads = n_reads + 1
     end
     
     @info "Done writing paired read sequences to datastore"
+    @info string(discarded, " reads were discarded due to a too short sequence")
     
     fpos = UInt64(position(ofs))
     
@@ -100,8 +104,8 @@ function Base.open(::Type{LongReadDatastore}, filename::String)
     
     seek(fd, fpos)
     
-    read_to_file_position = read_flat_vector(fd)
+    read_to_file_position = read_flat_vector(fd, ReadPosSize)
     
-    return LongReadDatastore(filename, default_name, default_name, read_to_file_position, stream)
+    return LongReadDatastore(filename, default_name, default_name, read_to_file_position, fd)
 end
     

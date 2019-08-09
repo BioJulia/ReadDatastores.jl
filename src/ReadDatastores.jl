@@ -39,7 +39,7 @@ end
 
 @inline function read_flat_vector(fd::IO, ::Type{T}) where {T}
     n = read(fd, UInt64)
-    v = Vector{T}(n)
+    v = Vector{T}(undef, n)
     unsafe_read(fd, pointer(v), n * sizeof(T))
     return v
 end

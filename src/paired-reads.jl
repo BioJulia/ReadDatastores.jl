@@ -64,7 +64,8 @@ function PairedReadDatastore(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
     
     pairs = discarded = truncated = 0
     
-    @info "Building paired read datastore from FASTQ files" sizepos readpos
+    @info "Building paired read datastore from FASTQ files"
+    @info "Writing paired reads to datastore"
     
     while !eof(rdrx) && !eof(rdry)
         # Read in the two records.
@@ -117,10 +118,10 @@ function PairedReadDatastore(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
     
     close(fd)
     
-    @info "Done writing paired read sequences to datastore."
-    @info string(discarded, " read pairs were discarded due to a too short sequence.")
-    @info string(truncated, " reads were truncated to ", maxsize, " base pairs.")
-    @info string("Created paired sequence datastore with ", pairs, " sequence pairs.")
+    @info "Done writing paired read sequences to datastore"
+    @info string(discarded, " read pairs were discarded due to a too short sequence")
+    @info string(truncated, " reads were truncated to ", maxsize, " base pairs")
+    @info string("Created paired sequence datastore with ", pairs, " sequence pairs")
     
     stream = open(outfile, "r+")
     return PairedReadDatastore(outfile, name, name,
