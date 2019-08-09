@@ -172,19 +172,19 @@ function Base.show(io::IO, prds::PairedReadDatastore)
 end
 
 bytes_per_read(prds::PRDS) = (prds.chunksize + 1) * sizeof(UInt64)
-read_offset_in_file(prds::PRDS, idx::Integer) = prds.readpos_offset + (bytes_per_read(prds) * (idx - 1))
+@inline unsafe_read_offset_in_file(prds::PRDS, idx::Integer) = prds.readpos_offset + (bytes_per_read(prds) * (idx - 1))
 
-function load_read!(prds::PRDS, seq::LongSequence{DNAAlphabet{4}})
+@inline function unsafe_load_read!(prds::PRDS, idx::Integer, seq::LongSequence{DNAAlphabet{4}})
+    seek(prds.stream, unsafe_read_offset_in_file(prds, idx))
     seqlen = read(prds.stream, UInt64)
     resize!(seq, seqlen)
     unsafe_read(prds.stream, pointer(seq.data), length(seq.data) * sizeof(UInt64))
     return seq
 end
 
-function load_read!(prds::PRDS, idx::Integer, seq::LongSequence{DNAAlphabet{4}})
-    seek(prds.stream, read_offset_in_file(prds, idx))
-    load_read!(prds, seq)
-    return seq
+@inline function load_read!(prds::PRDS, idx::Integer, seq::LongSequence{DNAAlphabet{4}})
+    checkbounds(prds, idx)
+    return unsafe_load_read!(prds, idx, seq)
 end
 
 @inline function Base.checkbounds(prds::PRDS, i::Integer)
@@ -201,7 +201,7 @@ eachindex(prds::PRDS) = Base.OneTo(lastindex(prds))
 @inline function Base.getindex(prds::PRDS, idx::Integer)
     @boundscheck checkbounds(prds, idx)
     seq = LongDNASeq(prds.readsize)
-    return load_read!(prds, idx, seq)
+    return unsafe_load_read!(prds, idx, seq)
 end
 
 Base.IteratorSize(prds::PRDS) = Base.HasLength()
