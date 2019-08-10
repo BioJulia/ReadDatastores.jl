@@ -24,8 +24,8 @@
         ds = open(LongReadDatastore, "human-nanopore.lrds")
         ds2 = open(LongReadDatastore, "human-nanopore.lrds")
     
-        @test index(ds) == index(ds2)
-        @test index(ds)[1] == index(ds2)[1]
+        @test ReadDatastores.index(ds) == ReadDatastores.index(ds2)
+        @test ReadDatastores.index(ds)[1] == ReadDatastores.index(ds2)[1]
         @test firstindex(ds) == firstindex(ds2) == 1
         @test lastindex(ds) == lastindex(ds2) == 10
         
