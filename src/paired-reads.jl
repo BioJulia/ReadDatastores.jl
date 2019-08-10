@@ -194,9 +194,9 @@ end
     throw(BoundsError(prds, i))
 end
 
-firstindex(prds::PRDS) = 1
-lastindex(prds::PRDS) = length(prds)
-eachindex(prds::PRDS) = Base.OneTo(lastindex(prds))
+Base.firstindex(prds::PRDS) = 1
+Base.lastindex(prds::PRDS) = length(prds)
+Base.eachindex(prds::PRDS) = Base.OneTo(lastindex(prds))
 
 @inline function Base.getindex(prds::PRDS, idx::Integer)
     @boundscheck checkbounds(prds, idx)
