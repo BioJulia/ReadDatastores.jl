@@ -21,8 +21,8 @@
     @testset "Human oxford nanopore 2D consensus reads tester" begin
         @test check_round_trip("human_nanopore_tester_2D.fastq")
     
-        ds = open(LongReadDatastore, "human-nanopore.prds")
-        ds2 = open(LongReadDatastore, "human-nanopore.prds")
+        ds = open(LongReadDatastore, "human-nanopore.lrds")
+        ds2 = open(LongReadDatastore, "human-nanopore.lrds")
     
         @test index(ds) == index(ds2)
         @test index(ds)[1] == index(ds2)[1]
