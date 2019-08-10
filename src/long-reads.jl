@@ -109,9 +109,9 @@ end
 
 Base.length(lrds::LRDS) = length(lrds.read_to_file_positions)
 
-firstindex(lrds::LRDS) = 1
-lastindex(lrds::LRDS) = length(lrds)
-eachindex(lrds::LRDS) = Base.OneTo(lastindex(lrds))
+Base.firstindex(lrds::LRDS) = 1
+Base.lastindex(lrds::LRDS) = length(lrds)
+Base.eachindex(lrds::LRDS) = Base.OneTo(lastindex(lrds))
 
 @inline function Base.checkbounds(lrds::LRDS, i::Integer)
     if firstindex(lrds) ≤ i ≤ lastindex(lrds)
