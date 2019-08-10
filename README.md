@@ -4,7 +4,7 @@
 [![MIT license](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/BioJulia/ReadDatastores.jl/blob/master/LICENSE) 
 [![Stable documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://biojulia.github.io/ReadDatastores.jl/stable)
 [![Latest documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://biojulia.github.io/ReadDatastores.jl/latest/)
-![Lifecycle](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)
+[![Lifecycle](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wi)
 [![Chat](https://img.shields.io/gitter/room/BioJulia/ReadDatastores.svg)](https://gitter.im/BioJulia/ReadDatastores.jl)
 
 
