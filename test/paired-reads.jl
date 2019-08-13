@@ -33,5 +33,10 @@
     
     @test check_round_trip("ecoli_tester_R1.fastq", "ecoli_tester_R2.fastq")
 
+    @testset "Buffered" begin
+        ds = open(PairedReadDatastore, "ecoli-pe.prds")
+        sb = SequenceBuffer(ds)
+        @test collect(ds) == collect(sb)
+    end
     
 end
