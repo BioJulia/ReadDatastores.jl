@@ -5,7 +5,8 @@ export
     PairedReadOrientation,
     FwRv,
     RvFw,
-    LongReadDatastore
+    LongReadDatastore,
+    SequenceBuffer
     
 using BioSequences, FASTX
 
@@ -47,5 +48,6 @@ end
 
 include("paired-reads.jl")
 include("long-reads.jl")
+include("sequence-buffer.jl")
 
 end # module

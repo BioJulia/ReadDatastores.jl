@@ -16,6 +16,7 @@ end
 orientation(prds::PairedReadDatastore) = prds.orientation
 maxseqlen(prds::PairedReadDatastore) = prds.readsize
 name(prds::PairedReadDatastore) = prds.name
+@inline stream(prds) = prds.stream
 
 const PRDS = PairedReadDatastore
 
@@ -173,6 +174,8 @@ end
 
 bytes_per_read(prds::PRDS) = (prds.chunksize + 1) * sizeof(UInt64)
 @inline unsafe_read_offset_in_file(prds::PRDS, idx::Integer) = prds.readpos_offset + (bytes_per_read(prds) * (idx - 1))
+
+
 
 @inline function inbounds_load_read!(prds::PRDS, idx::Integer, seq::LongSequence{DNAAlphabet{4}})
     seek(prds.stream, unsafe_read_offset_in_file(prds, idx))
