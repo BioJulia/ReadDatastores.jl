@@ -33,10 +33,11 @@
     
     @test check_round_trip("ecoli_tester_R1.fastq", "ecoli_tester_R2.fastq")
 
-    @testset "Buffered" begin
-        ds = open(PairedReads, "ecoli-pe.prds")
-        sb = SequenceBuffer(ds)
-        @test collect(ds) == collect(sb)
-    end
+    ds = open(PairedReads, "ecoli-pe.prds")
+    @test_throws BoundsError ds[100]
+    @test_throws BoundsError buffer(ds)[100]
+    @test_throws BoundsError load_sequence!(ds, 100, dna"")
+    @test collect(ds) == collect(buffer(ds))
+    
     
 end
