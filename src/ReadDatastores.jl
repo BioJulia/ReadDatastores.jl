@@ -1,7 +1,8 @@
 module ReadDatastores
 
 export 
-    PairedReadDatastore,
+    ReadDatastore,
+    PairedReads,
     PairedReadOrientation,
     FwRv,
     RvFw,
@@ -10,7 +11,7 @@ export
     
 using BioSequences, FASTX
 
-const SeqDataStoreMAGIC = 0x05D5
+const ReadDatastoreMAGIC = 0x05D5
 
 @enum Filetype::UInt16 begin
     PairedDS = 1
@@ -45,6 +46,11 @@ end
     return v
 end
     
+###
+### Abstract ReadDatastore type
+###
+
+abstract type ReadDatastore{S<:BioSequence} end
 
 include("paired-reads.jl")
 include("long-reads.jl")

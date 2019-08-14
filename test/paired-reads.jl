@@ -22,9 +22,9 @@
         fqa = open(FASTQ.Reader, R1)
         fqb = open(FASTQ.Reader, R2)
         
-        ds = PairedReadDatastore(fqa, fqb,
-                                 "ecoli-pe.prds", "ecoli-pe",
-                                 UInt64(250), UInt64(300), UInt64(0), FwRv)
+        ds = PairedReads(fqa, fqb,
+                         "ecoli-pe.prds", "ecoli-pe",
+                         UInt64(250), UInt64(300), UInt64(0), FwRv)
         
         ds_seqs = collect(ds)
         
@@ -34,7 +34,7 @@
     @test check_round_trip("ecoli_tester_R1.fastq", "ecoli_tester_R2.fastq")
 
     @testset "Buffered" begin
-        ds = open(PairedReadDatastore, "ecoli-pe.prds")
+        ds = open(PairedReads, "ecoli-pe.prds")
         sb = SequenceBuffer(ds)
         @test collect(ds) == collect(sb)
     end
