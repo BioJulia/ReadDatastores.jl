@@ -146,16 +146,6 @@ function Base.open(::Type{PairedReads}, filename::String)
     nreads = read(fd, UInt64)
     readpos_offset = position(fd)
     
-    @info magic
-    @info dstype
-    @info version
-    @info readsize
-    @info chunksize
-    @info fragsize
-    @info orientation
-    @info nreads
-    @info readpos_offset
-    
     return PairedReads(filename, default_name, default_name,
                        readsize, chunksize, fragsize,
                        readpos_offset, nreads, orientation, fd)
@@ -172,46 +162,10 @@ end
 bytes_per_read(prds::PairedReads) = (prds.chunksize + 1) * sizeof(UInt64)
 @inline unsafe_read_offset_in_file(prds::PairedReads, idx::Integer) = prds.readpos_offset + (bytes_per_read(prds) * (idx - 1))
 
-
-
-@inline function inbounds_load_read!(prds::PairedReads, idx::Integer, seq::LongSequence{DNAAlphabet{4}})
-    seek(prds.stream, unsafe_read_offset_in_file(prds, idx))
-    seqlen = read(prds.stream, UInt64)
-    resize!(seq, seqlen)
-    unsafe_read(prds.stream, pointer(seq.data), length(seq.data) * sizeof(UInt64))
-    return seq
-end
-
-@inline function load_read!(prds::PairedReads, idx::Integer, seq::LongSequence{DNAAlphabet{4}})
-    checkbounds(prds, idx)
-    return inbounds_load_read!(prds, idx, seq)
-end
-
-@inline function Base.checkbounds(prds::PairedReads, i::Integer)
-    if 1 ≤ i ≤ lastindex(prds)
-        return true
-    end
-    throw(BoundsError(prds, i))
-end
-
-Base.firstindex(prds::PairedReads) = 1
-Base.lastindex(prds::PairedReads) = length(prds)
-Base.eachindex(prds::PairedReads) = Base.OneTo(lastindex(prds))
+@inline _inbounds_index_of_sequence(prds::PairedReads, idx::Integer) = prds.readpos_offset + (bytes_per_read(prds) * (idx - 1))
 
 @inline function Base.getindex(prds::PairedReads, idx::Integer)
     @boundscheck checkbounds(prds, idx)
-    seq = LongDNASeq(prds.readsize)
-    return inbounds_load_read!(prds, idx, seq)
-end
-
-Base.IteratorSize(prds::PairedReads) = Base.HasLength()
-Base.IteratorEltype(prds::PairedReads) = Base.HasEltype()
-Base.eltype(prds::PairedReads) = LongSequence{DNAAlphabet{4}}
-
-@inline function Base.iterate(prds::PairedReads, state = 1)
-    @inbounds if firstindex(prds) ≤ state ≤ lastindex(prds)
-        return prds[state], state + 1
-    else
-        return nothing
-    end
+    seq = eltype(prds)(prds.readsize)
+    return inbounds_load_sequence!(prds, idx, seq)
 end

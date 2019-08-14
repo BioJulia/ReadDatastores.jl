@@ -12,7 +12,7 @@
         seqs = get_fastq_seqs(FQ)
         fq = open(FASTQ.Reader, FQ)
         ds = LongReads(fq, "human-nanopore.lrds", "human-nanopore", UInt64(0))
-        ds2 = open(LongReadDatastore, "human-nanopore.lrds")
+        ds2 = open(LongReads, "human-nanopore.lrds")
         ds_seqs = collect(ds)
         ds2_seqs = collect(ds2)
         return ds_seqs == seqs == ds2_seqs
