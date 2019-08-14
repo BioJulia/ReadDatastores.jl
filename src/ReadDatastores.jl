@@ -12,7 +12,8 @@ export
     name,
     maxseqlen,
     orientation,
-    load_sequence!
+    load_sequence!,
+    buffer
     
     
 using BioSequences, FASTX
