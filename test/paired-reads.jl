@@ -55,5 +55,6 @@
     @test collect(ds) == collect(buffer(ds)) == open(PairedReads, "ecoli-pe.prds") do ds
         collect(ds)
     end
+    @test ds[5] == buffer(ds)[5] == load_sequence!(ds, 5, dna"") == load_sequence!(buffer(ds), 5, dna"")
     
 end

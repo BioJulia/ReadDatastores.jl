@@ -160,7 +160,6 @@ function Base.show(io::IO, prds::PairedReads)
 end
 
 bytes_per_read(prds::PairedReads) = (prds.chunksize + 1) * sizeof(UInt64)
-@inline unsafe_read_offset_in_file(prds::PairedReads, idx::Integer) = prds.readpos_offset + (bytes_per_read(prds) * (idx - 1))
 
 @inline _inbounds_index_of_sequence(prds::PairedReads, idx::Integer) = prds.readpos_offset + (bytes_per_read(prds) * (idx - 1))
 

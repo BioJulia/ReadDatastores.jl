@@ -20,15 +20,6 @@ end
 @inline stream(sb::SequenceBuffer) = stream(datastore(sb))
 @inline bufferdata(sb::SequenceBuffer) = sb.bufferdata
 
-#=
-function _load_sequence(data::Vector{UInt8}, offset::Integer)
-    sequence_length = unsafe_load(convert(Ptr{UInt64}, pointer(data, offset + 1)))
-    offset = offset + sizeof(UInt64)
-    seq = LongSequence{DNAAlphabet{4}}(sequence_length)
-    return _load_sequence_data!(seq, data, offset)
-end
-=#
-
 Base.eltype(sb::SequenceBuffer) = Base.eltype(datastore(sb))
 Base.firstindex(sb::SequenceBuffer) = firstindex(datastore(sb))
 Base.lastindex(sb::SequenceBuffer) = lastindex(datastore(sb))
