@@ -1,6 +1,6 @@
 @enum PairedReadOrientation::UInt64 FwRv=1 RvFw=2
 
-struct PairedReadDatastore
+struct PairedReads <: ReadDatastore{LongSequence{DNAAlphabet{4}}}
     filename::String         # Filename datastore was opened from.
     name::String             # Name of the datastore. Useful for other applications.
     defaultname::String      # Default name, useful for other applications.
@@ -13,15 +13,13 @@ struct PairedReadDatastore
     stream::IOStream
 end
 
-orientation(prds::PairedReadDatastore) = prds.orientation
-maxseqlen(prds::PairedReadDatastore) = prds.readsize
-name(prds::PairedReadDatastore) = prds.name
-@inline stream(prds) = prds.stream
-
-const PRDS = PairedReadDatastore
+@inline orientation(prds::PairedReads) = prds.orientation
+@inline maxseqlen(prds::PairedReads) = prds.readsize
+@inline name(prds::PairedReads) = prds.name
+@inline stream(prds::PairedReads) = prds.stream
 
 ###
-### PairedReadDatastore Header
+### PairedReads Header format
 ###
 
 # | Field             | Value  | Type        |
@@ -38,10 +36,10 @@ const PRDS = PairedReadDatastore
 
 const PairedDS_Version = 0x0001
 
-function PairedReadDatastore(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
-                            outfile::String, name::String,
-                            minsize::UInt64, maxsize::UInt64,
-                            fragsize::UInt64, orientation::PairedReadOrientation)
+function PairedReads(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
+                     outfile::String, name::String,
+                     minsize::UInt64, maxsize::UInt64,
+                     fragsize::UInt64, orientation::PairedReadOrientation)
     
     # Create and allocate the sequence and record objects.
     lread = FASTQ.Record()
@@ -55,7 +53,7 @@ function PairedReadDatastore(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
     fd = open(outfile, "w")
     
     # Write magic no, datastore type, version number.
-    sizepos = write(fd, SeqDataStoreMAGIC, PairedDS, PairedDS_Version) +
+    sizepos = write(fd, ReadDatastoreMAGIC, PairedDS, PairedDS_Version) +
     # Write the default name of the datastore.
     writestring(fd, name) +
     # Write the read size, and chunk size.
@@ -125,18 +123,17 @@ function PairedReadDatastore(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
     @info string("Created paired sequence datastore with ", pairs, " sequence pairs")
     
     stream = open(outfile, "r+")
-    return PairedReadDatastore(outfile, name, name,
-                              maxsize, chunksize, fragsize,
-                              readpos, nreads, orientation, stream)
+    return PairedReads(outfile, name, name, maxsize, chunksize, fragsize,
+                       readpos, nreads, orientation, stream)
 end
 
-function Base.open(::Type{PairedReadDatastore}, filename::String)
+function Base.open(::Type{PairedReads}, filename::String)
     fd = open(filename, "r")
     magic = read(fd, UInt16)
     dstype = reinterpret(Filetype, read(fd, UInt16))
     version = read(fd, UInt16)
     
-    @assert magic == SeqDataStoreMAGIC
+    @assert magic == ReadDatastoreMAGIC
     @assert dstype == PairedDS
     @assert version == PairedDS_Version
     
@@ -149,72 +146,26 @@ function Base.open(::Type{PairedReadDatastore}, filename::String)
     nreads = read(fd, UInt64)
     readpos_offset = position(fd)
     
-    @info magic
-    @info dstype
-    @info version
-    @info readsize
-    @info chunksize
-    @info fragsize
-    @info orientation
-    @info nreads
-    @info readpos_offset
-    
-    return PairedReadDatastore(filename, default_name, default_name,
-                              readsize, chunksize, fragsize,
-                              readpos_offset, nreads, orientation, fd)
+    return PairedReads(filename, default_name, default_name,
+                       readsize, chunksize, fragsize,
+                       readpos_offset, nreads, orientation, fd)
 end
 
-@inline Base.length(prds::PairedReadDatastore) = prds.size
+@inline Base.length(prds::PairedReads) = prds.size
 
-Base.summary(io::IO, prds::PairedReadDatastore) = print(io, "Paired Sequence Datastore '", prds.name, "': ", length(prds), " reads")
+Base.summary(io::IO, prds::PairedReads) = print(io, "Paired Read Datastore '", prds.name, "': ", length(prds), " reads")
 
-function Base.show(io::IO, prds::PairedReadDatastore)
+function Base.show(io::IO, prds::PairedReads)
     summary(io, prds)
 end
 
-bytes_per_read(prds::PRDS) = (prds.chunksize + 1) * sizeof(UInt64)
-@inline unsafe_read_offset_in_file(prds::PRDS, idx::Integer) = prds.readpos_offset + (bytes_per_read(prds) * (idx - 1))
+bytes_per_read(prds::PairedReads) = (prds.chunksize + 1) * sizeof(UInt64)
+@inline unsafe_read_offset_in_file(prds::PairedReads, idx::Integer) = prds.readpos_offset + (bytes_per_read(prds) * (idx - 1))
 
+@inline _inbounds_index_of_sequence(prds::PairedReads, idx::Integer) = prds.readpos_offset + (bytes_per_read(prds) * (idx - 1))
 
-
-@inline function inbounds_load_read!(prds::PRDS, idx::Integer, seq::LongSequence{DNAAlphabet{4}})
-    seek(prds.stream, unsafe_read_offset_in_file(prds, idx))
-    seqlen = read(prds.stream, UInt64)
-    resize!(seq, seqlen)
-    unsafe_read(prds.stream, pointer(seq.data), length(seq.data) * sizeof(UInt64))
-    return seq
-end
-
-@inline function load_read!(prds::PRDS, idx::Integer, seq::LongSequence{DNAAlphabet{4}})
-    checkbounds(prds, idx)
-    return inbounds_load_read!(prds, idx, seq)
-end
-
-@inline function Base.checkbounds(prds::PRDS, i::Integer)
-    if 1 ≤ i ≤ lastindex(prds)
-        return true
-    end
-    throw(BoundsError(prds, i))
-end
-
-Base.firstindex(prds::PRDS) = 1
-Base.lastindex(prds::PRDS) = length(prds)
-Base.eachindex(prds::PRDS) = Base.OneTo(lastindex(prds))
-
-@inline function Base.getindex(prds::PRDS, idx::Integer)
+@inline function Base.getindex(prds::PairedReads, idx::Integer)
     @boundscheck checkbounds(prds, idx)
-    seq = LongDNASeq(prds.readsize)
-    return inbounds_load_read!(prds, idx, seq)
-end
-
-Base.IteratorSize(prds::PRDS) = Base.HasLength()
-Base.IteratorEltype(prds::PRDS) = Base.HasEltype()
-Base.eltype(prds::PRDS) = LongSequence{DNAAlphabet{4}}
-
-@inline function Base.iterate(prds::PRDS, state = 1)
-    @inbounds if firstindex(prds) ≤ state ≤ lastindex(prds)
-        return prds[state], state + 1
-    else
-        return nothing
-    end
+    seq = eltype(prds)(prds.readsize)
+    return inbounds_load_sequence!(prds, idx, seq)
 end
