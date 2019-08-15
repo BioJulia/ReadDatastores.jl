@@ -36,5 +36,12 @@
         @test collect(ds) == collect(buffer(ds))
         @test ds[5] == buffer(ds)[5] == load_sequence!(ds, 5, dna"") == load_sequence!(buffer(ds), 5, dna"")
         
+        bds = buffer(ds)
+        @test eltype(bds) == eltype(ds)
+        @test firstindex(bds) == firstindex(ds)
+        @test eachindex(bds) == eachindex(ds)
+        @test Base.IteratorSize(bds) == Base.IteratorSize(ds)
+        @test Base.IteratorEltype(bds) == Base.IteratorEltype(ds)
+        
     end
 end
