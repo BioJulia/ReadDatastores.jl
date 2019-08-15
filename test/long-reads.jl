@@ -32,7 +32,9 @@
         @test Base.IteratorSize(ds) == Base.IteratorSize(ds2) == Base.HasLength()
         @test Base.IteratorEltype(ds) == Base.IteratorEltype(ds2) == Base.HasEltype()
         @test Base.eltype(ds) == Base.eltype(ds2) == LongSequence{DNAAlphabet{4}}
-
+        
+        @test collect(ds) == collect(buffer(ds))
+        @test ds[5] == buffer(ds)[5] == load_sequence!(ds, 5, dna"") == load_sequence!(buffer(ds), 5, dna"")
         
     end
 end
