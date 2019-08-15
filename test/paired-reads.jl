@@ -38,7 +38,7 @@
     end
     
     @test check_round_trip("ecoli_tester_R1.fastq", "ecoli_tester_R2.fastq")
-
+    
     ds = open(PairedReads, "ecoli-pe.prds")
     @test ReadDatastores.name(ds) == "ecoli-pe"
     @test ReadDatastores.maxseqlen(ds) == 300
@@ -52,7 +52,8 @@
     @test_throws BoundsError ds[100]
     @test_throws BoundsError buffer(ds)[100]
     @test_throws BoundsError load_sequence!(ds, 100, dna"")
-    @test collect(ds) == collect(buffer(ds))
-    
+    @test collect(ds) == collect(buffer(ds)) == open(PairedReads, "ecoli-pe.prds") do ds
+        collect(ds)
+    end
     
 end
