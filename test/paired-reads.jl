@@ -31,9 +31,24 @@
         return ds_seqs[1:2:end] == r1_seqs && ds_seqs[2:2:end] == r2_seqs
     end
     
+    function check_show(ds, msg)
+        buf = IOBuffer()
+        show(buf, ds)
+        return String(take!(buf)) == msg
+    end
+    
     @test check_round_trip("ecoli_tester_R1.fastq", "ecoli_tester_R2.fastq")
 
     ds = open(PairedReads, "ecoli-pe.prds")
+    @test ReadDatastores.name(ds) == "ecoli-pe"
+    @test ReadDatastores.maxseqlen(ds) == 300
+    @test ReadDatastores.orientation(ds) == FwRv
+    @test check_show(ds, "Paired Read Datastore 'ecoli-pe': 20 reads")
+    @test firstindex(ds) == 1
+    @test lastindex(ds) == 20
+    @test Base.IteratorSize(ds) == Base.HasLength()
+    @test Base.IteratorEltype(ds) == Base.HasEltype()
+    @test Base.eltype(ds) == LongSequence{DNAAlphabet{4}}
     @test_throws BoundsError ds[100]
     @test_throws BoundsError buffer(ds)[100]
     @test_throws BoundsError load_sequence!(ds, 100, dna"")
