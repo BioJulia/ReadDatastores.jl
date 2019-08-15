@@ -15,8 +15,16 @@ Not your papa's FASTQ files.
 ReadDatastores provides a set of datastore types for storing and randomly accessing sequences
 from read datasets. Each datastore type is optimised to the type of read data stored.
 
-- A paired read datastore is provided for paired-end reads and long mate-pairs.
+Using these data-stores grants greater performance than using text files that
+store reads (see FASTX.jl, XAM.jl, etc.)
+since the sequences are stored in BioSequences.jl succinct bit encodings already,
+and preset formats/layouts of the binary files means no need to constantly validate the input.
 
+- A paired read datastore is provided for paired-end reads and long mate-pairs (Illumina MiSeq etc).
+- A long read datastore is provided for long-reads (Nanopore, PacBio etc.)
+
+Also included is the ability to buffer these datastores, sacrificing some RAM,
+for faster iteration / sequential access of the reads in the datastore. 
 
 ## Installation
 
@@ -45,7 +53,7 @@ the master branch to try new features before release.
 
 ## Testing
 
-BioSequences is tested against Julia `1.X` on Linux, OS X, and Windows.
+ReadDatastores is tested against Julia `1.X` on Linux, OS X, and Windows.
 
 [![](https://travis-ci.com/BioJulia/ReadDatastores.jl.svg?branch=master)](https://travis-ci.com/BioJulia/ReadDatastores.jl)
 [![](https://codecov.io/gh/BioJulia/ReadDatastores.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/BioJulia/ReadDatastores.jl)
