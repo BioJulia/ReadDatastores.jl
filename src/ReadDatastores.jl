@@ -7,6 +7,8 @@ export
     FwRv,
     RvFw,
     LongReads,
+    LinkedReads,
+    UCDavis,
     SequenceBuffer,
     
     name,
@@ -23,6 +25,7 @@ const ReadDatastoreMAGIC = 0x05D5
 @enum Filetype::UInt16 begin
     PairedDS = 1
     LongDS = 2
+    LinkedDS = 3
 end
 
 ###
@@ -35,8 +38,7 @@ end
 
 @inline function write_flat_vector(fd::IO, v::Vector{T}) where {T}
     n = UInt64(length(v))
-    write(fd, n)
-    write(fd, v)
+    return write(fd, n) + write(fd, v)
 end
 
 @inline function read_flat_vector!(fd::IO, v::Vector{T}) where {T}
