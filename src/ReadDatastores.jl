@@ -8,7 +8,7 @@ export
     RvFw,
     LongReads,
     LinkedReads,
-    UCDavis,
+    UCDavis10x,
     SequenceBuffer,
     
     name,
@@ -65,6 +65,7 @@ abstract type ReadDatastore{S<:BioSequence} end
 ###
 include("paired-reads.jl")
 include("long-reads.jl")
+include("linked-reads.jl")
 include("sequence-buffer.jl")
 
 ###

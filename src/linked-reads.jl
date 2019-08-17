@@ -1,8 +1,8 @@
 abstract type LinkedReadsFormat end
 
-struct UCDavisFormat <: LinkedReadsFormat end
+struct UCDavisTenX <: LinkedReadsFormat end
 
-const UCDavis = UCDavisFormat()
+const UCDavis10x = UCDavisTenX()
 
 const LinkedTag = UInt32
 mutable struct LinkedReadData
@@ -13,28 +13,27 @@ mutable struct LinkedReadData
     tag::LinkedTag
 end
 
-Base.isless(a::LinkedReadData, b::LinkedReadData) = a.tab < b.tag
+Base.isless(a::LinkedReadData, b::LinkedReadData) = a.tag < b.tag
 LinkedReadData(len) = LinkedReadData(LongDNASeq(len), LongDNASeq(len), zero(UInt64), zero(UInt64), zero(LinkedTag))
-    
-const tagbits = (0xff, 0x00, 0x01, 0xff,
-                  0x02, 0xff, 0xff, 0xff,
-                  0x03, 0xff, 0xff, 0xff,
-                  0xff, 0xff, 0xff, 0xff)
 
 const LinkedDS_Version = 0x0001
 
-function _extract_tag_and_sequences!(current_data::LinkedReadData, fwrec::FASTQ.Record, rvrec::FASTQ.Record, readsize::Int, ::UCDavisFormat)
+function _extract_tag_and_sequences!(current_data::LinkedReadData, fwrec::FASTQ.Record, rvrec::FASTQ.Record, readsize::UInt64, ::UCDavisTenX)
     fwid = FASTQ.identifier(fwrec)
     newtag = zero(UInt32)
     @inbounds for i in 1:16
         newtag <<= 2
-        nuc = reinterpret(UInt8, DNA(fwid[i]))
-        bits = tagbits[nuc]
-        if bits == 0xff
+        letter = fwid[i]
+        if letter == 'C'
+            newtag = newtag + 1
+        elseif letter == 'G'
+            newtag = newtag + 2
+        elseif letter == 'T'
+            newtag = newtag + 3
+        elseif letter != 'A'
             newtag = zero(UInt32)
             break
         end
-        newtag = newtag + bits
     end
     current_data.tag = newtag
     current_data.seqlen1 = UInt64(min(readsize, FASTQ.seqlen(fwrec)))
@@ -43,7 +42,7 @@ function _extract_tag_and_sequences!(current_data::LinkedReadData, fwrec::FASTQ.
     copyto!(current_data.seq2, 1, rvrec, 1, current_data.seqlen2)
 end
 
-struct LinkedReads <: ReadsDatastore{LongSequence{DNAAlphabet{4}}}
+struct LinkedReads <: ReadDatastore{LongSequence{DNAAlphabet{4}}}
     filename::String          # Filename datastore was opened from.
     name::String              # Name of the datastore. Useful for other applications.
     defaultname::String       # Default name, useful for other applications.
@@ -53,7 +52,7 @@ struct LinkedReads <: ReadsDatastore{LongSequence{DNAAlphabet{4}}}
     stream::IO
 end
 
-function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name::String, format::LinkedReadsFormat, readsize::Int, chunksize::Int)
+function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name::String, format::LinkedReadsFormat, readsize::UInt64, chunksize::Int = 1000000)
     n_pairs = 0
     chunk_files = String[]
     
@@ -62,7 +61,7 @@ function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name
     fwrec = FASTQ.Record()
     rvrec = FASTQ.Record()
     chunk_data = [LinkedReadData(readsize) for _ in 1:chunksize]
-    datachunksize = sizeof(BioSequences.encoded_data(first(chunk_data)))
+    datachunksize = sizeof(BioSequences.encoded_data(first(chunk_data).seq1))
     
     while !eof(fwq) && !eof(rvq)
         # Read in `chunksize` read pairs.
@@ -72,28 +71,30 @@ function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name
             read!(rvq, rvrec)
             cd_i = chunk_data[chunkfill + 1]
             _extract_tag_and_sequences!(cd_i, fwrec, rvrec, readsize, format)
+            @debug cd_i
             if cd_i.tag != zero(UInt32)
                 chunkfill = chunkfill + 1
             end
+            @debug chunkfill
         end
         # Sort the linked reads by tag
         sort!(view(chunk_data, 1:chunkfill))
         # Dump the data to a chunk dump
         chunk_fd = open(string("sorted_chunk_", length(chunk_files), ".data"), "w")
-        @info string("Dumping ", i, " tag-sorted read pairs to chunk ", length(chunk_files))
-        for j in 1:i
+        @info string("Dumping ", chunkfill, " tag-sorted read pairs to chunk ", length(chunk_files))
+        for j in 1:chunkfill
             cd_j = chunk_data[j]
-            write(fd, cd_j.tag)
-            write(fd, cd_j.seqlen1)
-            write(fd, BioSequences.encoded_data(cd_j.seq1))
-            write(fd, cd_j.seqlen2)
-            write(fd, BioSequences.encoded_data(cd_j.seq2))
+            write(chunk_fd, cd_j.tag)
+            write(chunk_fd, cd_j.seqlen1)
+            write(chunk_fd, BioSequences.encoded_data(cd_j.seq1))
+            write(chunk_fd, cd_j.seqlen2)
+            write(chunk_fd, BioSequences.encoded_data(cd_j.seq2))
         end
         close(chunk_fd)
         push!(chunk_files, string("sorted_chunk_", length(chunk_files), ".data"))
         @info "Dumped"
-        n_pairs = n_pairs + i
-        @info string("Processed ", n_pairs, " so far") 
+        n_pairs = n_pairs + chunkfill
+        @info string("Processed ", n_pairs, " read pairs so far") 
     end
     close(fwq)
     close(rvq)
@@ -105,11 +106,11 @@ function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name
     
     output = open(outfile, "w")
     # Write magic no, datastore type, version number.
-    write(fd, ReadDatastoreMAGIC, LinkedDS, LinkedDS_Version)
+    write(output, ReadDatastoreMAGIC, LinkedDS, LinkedDS_Version)
     # Write the default name of the datastore.
-    writestring(fd, name)
+    writestring(output, name)
     # Write the read size, and chunk size.
-    write(fd, maxsize)
+    write(output, readsize)
     
     read_tag_offset = position(output)
     write_flat_vector(output, read_tag)
@@ -117,15 +118,14 @@ function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name
     # Multiway merge of chunks...
     chunk_fds = map(x -> open(x, "r"), chunk_files)
     openfiles = length(chunk_fds)
-    next_tags = Vector{UInt32}(openfiles)
+    next_tags = Vector{UInt32}(undef, openfiles)
     for i in eachindex(chunk_fds)
-        fd = chunk_fds[i]
-        next_tags[i] = read(fd, LinkedTag)
+        next_tags[i] = read(chunk_fds[i], LinkedTag)
     end
     
     filebuffer = Vector{UInt8}(undef, sizeof(LinkedTag) + 2(sizeof(UInt64) + datachunksize))
     empty!(read_tag)
-    while openfile > 0
+    while openfiles > 0
         mintag = minimum(next_tags)
         # Copy from each file until then next tag is > mintag
         for i in eachindex(chunk_fds)
@@ -159,7 +159,7 @@ function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name
         rm(fname)
     end
     @info string("Created linked sequence datastore with ", n_pairs, " sequence pairs")
-    return LinkedReads(outfile, name, name, readsize, readspos, read_tags, open(outfile, "r"))
+    return LinkedReads(outfile, name, name, readsize, readspos, read_tag, open(outfile, "r"))
 end
 
 function Base.open(::Type{LinkedReads}, filename::String)
