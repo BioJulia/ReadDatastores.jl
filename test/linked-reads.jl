@@ -85,7 +85,7 @@
     @test_throws BoundsError ds[200]
     @test_throws BoundsError buffer(ds)[200]
     @test_throws BoundsError load_sequence!(ds, 200, dna"")
-    #@test collect(ds) == collect(buffer(ds)) == open(PairedReads, "10xtest.lrds") do ds
-    #    collect(ds)
-    #end
+    @test collect(ds) == collect(buffer(ds)) == open(LinkedReads, "10xtest.lrds") do ds
+        collect(ds)
+    end
 end
