@@ -56,7 +56,7 @@
         fqa = open(FASTQ.Reader, R1)
         fqb = open(FASTQ.Reader, R2)
         
-        ds = LinkedReads(fqa, fqb, "10xtest.lrds", "ucavis-test", UCDavis10x, UInt64(maxlen))
+        ds = LinkedReads(fqa, fqb, "10xtest.lrds", "ucdavis-test", UCDavis10x, UInt64(maxlen))
         ds2 = open(LinkedReads, "10xtest.lrds")
         
         ds_seqs = collect(ds)
@@ -65,31 +65,27 @@
         return ds_seqs[1:2:end] == ds2_seqs[1:2:end] == r1_seqs && ds_seqs[2:2:end] == ds2_seqs[2:2:end] == r2_seqs
     end
     
-    #function check_show(ds, msg)
-    #    buf = IOBuffer()
-    #    show(buf, ds)
-    #    return String(take!(buf)) == msg
-    #end
+    function check_show(ds, msg)
+        buf = IOBuffer()
+        show(buf, ds)
+        return String(take!(buf)) == msg
+    end
     
     @test check_round_trip("10x_tester_R1.fastq", "10x_tester_R2.fastq", 250)
     
-    #=
-    ds = open(PairedReads, "ecoli-pe.prds")
-    @test ReadDatastores.name(ds) == "ecoli-pe"
-    @test ReadDatastores.maxseqlen(ds) == 300
-    @test ReadDatastores.orientation(ds) == FwRv
-    @test check_show(ds, "Paired Read Datastore 'ecoli-pe': 20 reads")
+    ds = open(LinkedReads, "10xtest.lrds")
+    @test ReadDatastores.name(ds) == "ucdavis-test"
+    @test ReadDatastores.maxseqlen(ds) == 250
+    @test check_show(ds, "Linked Read Datastore 'ucdavis-test': 166 reads (83 pairs)")
     @test firstindex(ds) == 1
-    @test lastindex(ds) == 20
+    @test lastindex(ds) == 166
     @test Base.IteratorSize(ds) == Base.HasLength()
     @test Base.IteratorEltype(ds) == Base.HasEltype()
     @test Base.eltype(ds) == LongSequence{DNAAlphabet{4}}
-    @test_throws BoundsError ds[100]
-    @test_throws BoundsError buffer(ds)[100]
-    @test_throws BoundsError load_sequence!(ds, 100, dna"")
-    @test collect(ds) == collect(buffer(ds)) == open(PairedReads, "ecoli-pe.prds") do ds
-        collect(ds)
-    end
-    =#
-    
+    @test_throws BoundsError ds[200]
+    @test_throws BoundsError buffer(ds)[200]
+    @test_throws BoundsError load_sequence!(ds, 200, dna"")
+    #@test collect(ds) == collect(buffer(ds)) == open(PairedReads, "10xtest.lrds") do ds
+    #    collect(ds)
+    #end
 end

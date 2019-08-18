@@ -18,6 +18,12 @@
         return ds_seqs == seqs == ds2_seqs
     end
     
+    function check_show(ds, msg)
+        buf = IOBuffer()
+        show(buf, ds)
+        return String(take!(buf)) == msg
+    end
+    
     @testset "Human oxford nanopore 2D consensus reads tester" begin
         @test check_round_trip("human_nanopore_tester_2D.fastq")
     
@@ -28,6 +34,8 @@
         @test ReadDatastores.index(ds)[1] == ReadDatastores.index(ds2)[1]
         @test firstindex(ds) == firstindex(ds2) == 1
         @test lastindex(ds) == lastindex(ds2) == 10
+        
+        @test check_show(ds, "Long Read Datastore 'human-nanopore': 10 reads")
         
         @test Base.IteratorSize(ds) == Base.IteratorSize(ds2) == Base.HasLength()
         @test Base.IteratorEltype(ds) == Base.IteratorEltype(ds2) == Base.HasEltype()

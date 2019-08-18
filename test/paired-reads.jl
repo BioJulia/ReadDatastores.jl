@@ -43,7 +43,7 @@
     @test ReadDatastores.name(ds) == "ecoli-pe"
     @test ReadDatastores.maxseqlen(ds) == 300
     @test ReadDatastores.orientation(ds) == FwRv
-    @test check_show(ds, "Paired Read Datastore 'ecoli-pe': 20 reads")
+    @test check_show(ds, "Paired Read Datastore 'ecoli-pe': 20 reads (10 pairs)")
     @test firstindex(ds) == 1
     @test lastindex(ds) == 20
     @test Base.IteratorSize(ds) == Base.HasLength()

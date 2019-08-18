@@ -53,6 +53,8 @@ struct LinkedReads <: ReadDatastore{LongSequence{DNAAlphabet{4}}}
     stream::IO
 end
 
+@inline maxseqlen(lrds::LinkedReads) = lrds.readsize
+@inline name(lrds::LinkedReads) = lrds.name
 @inline stream(lrds::LinkedReads) = lrds.stream
 
 function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name::String, format::LinkedReadsFormat, readsize::UInt64, chunksize::Int = 1000000)
@@ -188,6 +190,12 @@ bytes_per_read(lrds::LinkedReads) = (lrds.chunksize + 1) * sizeof(UInt64)
 @inline _inbounds_index_of_sequence(lrds::LinkedReads, idx::Integer) = lrds.readpos_offset + (bytes_per_read(lrds) * (idx - 1))
 
 @inline Base.length(lrds::LinkedReads) = length(lrds.read_tags) * 2
+
+Base.summary(io::IO, lrds::LinkedReads) = print(io, "Linked Read Datastore '", lrds.name, "': ", length(lrds), " reads (", div(length(lrds), 2), " pairs)")
+
+function Base.show(io::IO, lrds::LinkedReads)
+    summary(io, lrds)
+end
 
 @inline function Base.getindex(lrds::LinkedReads, idx::Integer)
     @boundscheck checkbounds(lrds, idx)
