@@ -22,6 +22,8 @@ and preset formats/layouts of the binary files means no need to constantly valid
 
 - A paired read datastore is provided for paired-end reads and long mate-pairs (Illumina MiSeq etc).
 - A long read datastore is provided for long-reads (Nanopore, PacBio etc.)
+- A linked read datastore is provided for shorter reads that are linked or grouped using some additional
+  (typically proximity based) tag (10x).
 
 Also included is the ability to buffer these datastores, sacrificing some RAM,
 for faster iteration / sequential access of the reads in the datastore. 

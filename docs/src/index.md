@@ -4,7 +4,7 @@
 [![MIT license](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/BioJulia/ReadDatastores.jl/blob/master/LICENSE) 
 [![Stable documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://biojulia.github.io/ReadDatastores.jl/stable)
 [![Latest documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://biojulia.github.io/ReadDatastores.jl/latest/)
-![Lifecycle](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)
+[![Lifecycle](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wi)
 [![Chat](https://img.shields.io/gitter/room/BioJulia/ReadDatastores.svg)](https://gitter.im/BioJulia/ReadDatastores.jl)
 
 
@@ -15,8 +15,18 @@ Not your papa's FASTQ files.
 ReadDatastores provides a set of datastore types for storing and randomly accessing sequences
 from read datasets. Each datastore type is optimised to the type of read data stored.
 
-- A paired read datastore is provided for paired-end reads and long mate-pairs.
+Using these data-stores grants greater performance than using text files that
+store reads (see FASTX.jl, XAM.jl, etc.)
+since the sequences are stored in BioSequences.jl succinct bit encodings already,
+and preset formats/layouts of the binary files means no need to constantly validate the input.
 
+- A paired read datastore is provided for paired-end reads and long mate-pairs (Illumina MiSeq etc).
+- A long read datastore is provided for long-reads (Nanopore, PacBio etc.)
+- A linked read datastore is provided for shorter reads that are linked or grouped using some additional
+  (typically proximity based) tag (10x).
+
+Also included is the ability to buffer these datastores, sacrificing some RAM,
+for faster iteration / sequential access of the reads in the datastore. 
 
 ## Installation
 
@@ -45,9 +55,9 @@ the master branch to try new features before release.
 
 ## Testing
 
-BioSequences is tested against Julia `1.X` on Linux, OS X, and Windows.
+ReadDatastores is tested against Julia `1.X` on Linux, OS X, and Windows.
 
-[![](https://travis-ci.org/BioJulia/ReadDatastores.jl.svg?branch=master)](https://travis-ci.org/BioJulia/ReadDatastores.jl)
+[![](https://travis-ci.com/BioJulia/ReadDatastores.jl.svg?branch=master)](https://travis-ci.com/BioJulia/ReadDatastores.jl)
 [![](https://codecov.io/gh/BioJulia/ReadDatastores.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/BioJulia/ReadDatastores.jl)
 
 
