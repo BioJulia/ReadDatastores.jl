@@ -102,6 +102,12 @@ end
 
 Base.length(lrds::LongReads) = length(lrds.read_to_file_positions)
 
+Base.summary(io::IO, lrds::LongReads) = print(io, "Long Read Datastore '", lrds.name, "': ", length(lrds), " reads")
+
+function Base.show(io::IO, lrds::LongReads)
+    summary(io, lrds)
+end
+
 @inline _inbounds_index_of_sequence(lrds::LongReads, idx::Integer) = @inbounds lrds.read_to_file_positions[idx]
 
 @inline function Base.getindex(lrds::LongReads, idx::Integer)

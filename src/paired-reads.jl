@@ -153,7 +153,7 @@ end
 
 @inline Base.length(prds::PairedReads) = prds.size
 
-Base.summary(io::IO, prds::PairedReads) = print(io, "Paired Read Datastore '", prds.name, "': ", length(prds), " reads")
+Base.summary(io::IO, prds::PairedReads) = print(io, "Paired Read Datastore '", prds.name, "': ", length(prds), " reads (", div(length(prds), 2), " pairs)")
 
 function Base.show(io::IO, prds::PairedReads)
     summary(io, prds)
