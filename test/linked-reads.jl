@@ -56,8 +56,8 @@
         fqa = open(FASTQ.Reader, R1)
         fqb = open(FASTQ.Reader, R2)
         
-        ds = LinkedReads(fqa, fqb, "10xtest.lrds", "ucdavis-test", UCDavis10x, UInt64(maxlen), chunksize)
-        ds2 = open(LinkedReads, "10xtest.lrds")
+        ds = LinkedReads(fqa, fqb, "10xtest", "ucdavis-test", UCDavis10x, maxlen, chunksize)
+        ds2 = open(LinkedReads, "10xtest.lrseq")
         
         ds_seqs = collect(ds)
         ds2_seqs = collect(ds2)
@@ -73,7 +73,7 @@
     
     @test check_round_trip("10x_tester_R1.fastq", "10x_tester_R2.fastq", 250, 10)
     
-    ds = open(LinkedReads, "10xtest.lrds")
+    ds = open(LinkedReads, "10xtest.lrseq")
     @test ReadDatastores.name(ds) == "ucdavis-test"
     @test ReadDatastores.maxseqlen(ds) == 250
     @test check_show(ds, "Linked Read Datastore 'ucdavis-test': 166 reads (83 pairs)")
@@ -85,7 +85,7 @@
     @test_throws BoundsError ds[200]
     @test_throws BoundsError buffer(ds)[200]
     @test_throws BoundsError load_sequence!(ds, 200, dna"")
-    @test collect(ds) == collect(buffer(ds)) == open(LinkedReads, "10xtest.lrds") do ds
+    @test collect(ds) == collect(buffer(ds)) == open(LinkedReads, "10xtest.lrseq") do ds
         collect(ds)
     end
 end

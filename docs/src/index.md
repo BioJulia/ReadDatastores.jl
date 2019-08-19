@@ -13,7 +13,7 @@
 Not your papa's FASTQ files.
 
 ReadDatastores provides a set of datastore types for storing and randomly accessing sequences
-from read datasets. Each datastore type is optimised to the type of read data stored.
+from read datasets from disk. Each datastore type is optimised to the type of read data stored.
 
 Using these data-stores grants greater performance than using text files that
 store reads (see FASTX.jl, XAM.jl, etc.)

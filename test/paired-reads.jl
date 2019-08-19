@@ -23,8 +23,8 @@
         fqb = open(FASTQ.Reader, R2)
         
         ds = PairedReads(fqa, fqb,
-                         "ecoli-pe.prds", "ecoli-pe",
-                         UInt64(250), UInt64(300), UInt64(0), FwRv)
+                         "ecoli-pe", "ecoli-pe",
+                         250, 300, 0, FwRv)
         
         ds_seqs = collect(ds)
         
@@ -39,7 +39,7 @@
     
     @test check_round_trip("ecoli_tester_R1.fastq", "ecoli_tester_R2.fastq")
     
-    ds = open(PairedReads, "ecoli-pe.prds")
+    ds = open(PairedReads, "ecoli-pe.prseq")
     @test ReadDatastores.name(ds) == "ecoli-pe"
     @test ReadDatastores.maxseqlen(ds) == 300
     @test ReadDatastores.orientation(ds) == FwRv
@@ -52,7 +52,7 @@
     @test_throws BoundsError ds[100]
     @test_throws BoundsError buffer(ds)[100]
     @test_throws BoundsError load_sequence!(ds, 100, dna"")
-    @test collect(ds) == collect(buffer(ds)) == open(PairedReads, "ecoli-pe.prds") do ds
+    @test collect(ds) == collect(buffer(ds)) == open(PairedReads, "ecoli-pe.prseq") do ds
         collect(ds)
     end
     @test ds[5] == buffer(ds)[5] == load_sequence!(ds, 5, dna"") == load_sequence!(buffer(ds), 5, dna"")

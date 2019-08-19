@@ -30,11 +30,46 @@ const LongDS_Version = 0x0001
 # | Index position in file        | N/A    | UInt64      | 8
 # | Default name of the datastore | N/A    | String      | N
 
+"""
+    LongReads(rdr::FASTQ.Reader, outfile::String, name::String, min_size::Integer)
+
+Construct a Long Read Datastore from a FASTQ file reader.
+
+# Arguments
+- `rdr::FASTQ.Reader`: The reader of the fastq formatted file.
+- `outfile::String`: A prefix for the datastore's filename, the full filename
+  will include a ".loseq" extension, which will be added automatically.
+- `name::String`: A string denoting a default name for your datastore.
+  Naming datastores is useful for downstream applications.
+- `min_size::Integer`: A minimum read length (in base pairs). When building
+  the datastore, if any read sequence is shorter than this cutoff, then the read
+  will be discarded.
+
+# Examples
+```jldoctest
+julia> using FASTX, ReadDatastores
+
+julia> longrdr = open(FASTQ.Reader, "test/human_nanopore_tester_2D.fastq")
+FASTX.FASTQ.Reader{TranscodingStreams.TranscodingStream{TranscodingStreams.Noop,IOStream}}(BioGenerics.Automa.State{TranscodingStreams.TranscodingStream{TranscodingStreams.Noop,IOStream}}(TranscodingStreams.TranscodingStream{TranscodingStreams.Noop,IOStream}(<mode=idle>), 1, 1, false), nothing)
+
+julia> ds = LongReads(longrdr, "human-nanopore-tester", "nanopore-test", 0)
+[ Info: Building long read datastore from FASTQ file
+[ Info: Writing long reads to datastore
+[ Info: Done writing paired read sequences to datastore
+[ Info: 0 reads were discarded due to a too short sequence
+[ Info: Writing index to datastore
+[ Info: Built long read datastore with 10 reads
+Long Read Datastore 'nanopore-test': 10 reads
+
+```
+"""
+LongReads(rdr::FASTQ.Reader, outfile::String, name::String, min_size::Integer) = LongReads(rdr, outfile, name, convert(UInt64, min_size))
+
 function LongReads(rdr::FASTQ.Reader, outfile::String, name::String, min_size::UInt64)
     discarded = 0
     
     read_to_file_position = Vector{ReadPosSize}()
-    ofs = open(outfile, "w")
+    ofs = open(outfile * ".loseq", "w")
     
     write(ofs, ReadDatastoreMAGIC, LongDS, LongDS_Version, zero(UInt64))
     
@@ -77,8 +112,8 @@ function LongReads(rdr::FASTQ.Reader, outfile::String, name::String, min_size::U
     
     @info string("Built long read datastore with ", length(read_to_file_position), " reads") 
     
-    stream = open(outfile, "r+")
-    return LongReads(outfile, name, name, read_to_file_position, stream)
+    stream = open(outfile * ".loseq", "r+")
+    return LongReads(outfile * ".loseq", name, name, read_to_file_position, stream)
 end
 
 function Base.open(::Type{LongReads}, filename::String)
