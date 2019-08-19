@@ -202,3 +202,11 @@ end
     seq = eltype(lrds)(lrds.readsize)
     return inbounds_load_sequence!(lrds, idx, seq)
 end
+
+@inline inbounds_read_tag(lrds::LinkedReads, idx::Integer) = @inbounds lrds.read_tags[div(idx + 1, 2)]
+
+function read_tag(lrds::LinkedReads, idx::Integer)
+    checkbounds(lrds, idx)
+    inbounds_readtag(lrds, idx)
+end
+
