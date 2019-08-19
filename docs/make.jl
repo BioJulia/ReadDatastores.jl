@@ -5,7 +5,7 @@ makedocs(
     sitename = "ReadDatastores.jl",
     pages = [
         "Home"         => "index.md",
-        "Building datastores" => "build-datastores.md"
+        "Building & loading datastores" => "build-datastores.md"
     ],
     authors = "Ben J. Ward, The BioJulia Organisation and other contributors."
 )

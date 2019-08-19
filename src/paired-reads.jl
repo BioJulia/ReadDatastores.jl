@@ -186,7 +186,7 @@ function PairedReads(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
                        readpos, nreads, orientation, stream)
 end
 
-function Base.open(::Type{PairedReads}, filename::String)
+function Base.open(::Type{PairedReads}, filename::String, name::Union{String,Nothing} = nothing)
     fd = open(filename, "r")
     magic = read(fd, UInt16)
     dstype = reinterpret(Filetype, read(fd, UInt16))
@@ -205,7 +205,7 @@ function Base.open(::Type{PairedReads}, filename::String)
     nreads = read(fd, UInt64)
     readpos_offset = position(fd)
     
-    return PairedReads(filename, default_name, default_name,
+    return PairedReads(filename, ifelse(isnothing(name), default_name, name), default_name,
                        readsize, chunksize, fragsize,
                        readpos_offset, nreads, orientation, fd)
 end
