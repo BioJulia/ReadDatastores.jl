@@ -50,13 +50,13 @@
     
     
     
-    function check_round_trip(R1, R2, maxlen)
+    function check_round_trip(R1, R2, maxlen, chunksize = 1000000)
         r1_seqs, r2_seqs = get_fastq_seqs(R1, R2, maxlen)
         
         fqa = open(FASTQ.Reader, R1)
         fqb = open(FASTQ.Reader, R2)
         
-        ds = LinkedReads(fqa, fqb, "10xtest.lrds", "ucdavis-test", UCDavis10x, UInt64(maxlen))
+        ds = LinkedReads(fqa, fqb, "10xtest.lrds", "ucdavis-test", UCDavis10x, UInt64(maxlen), chunksize)
         ds2 = open(LinkedReads, "10xtest.lrds")
         
         ds_seqs = collect(ds)
@@ -71,7 +71,7 @@
         return String(take!(buf)) == msg
     end
     
-    @test check_round_trip("10x_tester_R1.fastq", "10x_tester_R2.fastq", 250)
+    @test check_round_trip("10x_tester_R1.fastq", "10x_tester_R2.fastq", 250, 10)
     
     ds = open(LinkedReads, "10xtest.lrds")
     @test ReadDatastores.name(ds) == "ucdavis-test"
