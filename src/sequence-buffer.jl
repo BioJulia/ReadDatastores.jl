@@ -130,3 +130,7 @@ end
         return nothing
     end
 end
+
+Base.summary(io::IO, sb::SequenceBuffer) = print(io, "Buffered ", summary(datastore(sb)))
+
+Base.show(io::IO, sb::SequenceBuffer) = summary(io, sb)
