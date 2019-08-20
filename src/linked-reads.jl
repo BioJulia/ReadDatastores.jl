@@ -55,10 +55,6 @@ struct LinkedReads <: ReadDatastore{LongSequence{DNAAlphabet{4}}}
     stream::IO
 end
 
-@inline maxseqlen(lrds::LinkedReads) = lrds.readsize
-@inline name(lrds::LinkedReads) = lrds.name
-@inline stream(lrds::LinkedReads) = lrds.stream
-
 """
     LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name::String, format::LinkedReadsFormat, readsize::Integer, chunksize::Int = 1000000)
 
@@ -101,9 +97,9 @@ julia> ds = LinkedReads(fqa, fqb, "10xtest", "ucdavis-test", UCDavis10x, 250)
 [ Info: Finished building tag sorted chunks
 [ Info: Performing merge from disk
 [ Info: Leaving space for 83 read_tag entries
-[ Info: Chunk 1 is finished
+[ Info: Chunk 0 is finished
 [ Info: Finished merge from disk
-[ Info: Writing down 83 read tag entries
+[ Info: Writing 83 read tag entries
 [ Info: Created linked sequence datastore with 83 sequence pairs
 Linked Read Datastore 'ucdavis-test': 166 reads (83 pairs)
 
@@ -199,7 +195,7 @@ function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name
                 if eof(fd)
                     openfiles = openfiles - 1
                     next_tags[i] = typemax(LinkedTag)
-                    @info string("Chunk ", i, " is finished")
+                    @info string("Chunk ", i - 1, " is finished")
                 else
                     next_tags[i] = read(fd, LinkedTag)
                 end
@@ -209,7 +205,7 @@ function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name
     
     @info "Finished merge from disk"
     seek(output, read_tag_offset)
-    @info string("Writing down ", n_pairs, " read tag entries")
+    @info string("Writing ", n_pairs, " read tag entries")
     write_flat_vector(output, read_tag)
     readspos = position(output)
     close(output)
@@ -261,8 +257,13 @@ end
 
 @inline inbounds_read_tag(lrds::LinkedReads, idx::Integer) = @inbounds lrds.read_tags[div(idx + 1, 2)]
 
-function read_tag(lrds::LinkedReads, idx::Integer)
-    checkbounds(lrds, idx)
-    inbounds_readtag(lrds, idx)
+"""
+    read_tag(lr::LinkedReads, i::Integer)
+
+Get the tag for the i'th read
+"""
+function read_tag(lr::LinkedReads, i::Integer)
+    checkbounds(lr, i)
+    inbounds_readtag(lr, i)
 end
 

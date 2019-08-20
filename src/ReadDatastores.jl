@@ -15,7 +15,8 @@ export
     maxseqlen,
     orientation,
     load_sequence!,
-    buffer
+    buffer,
+    read_tag
     
     
 using BioSequences, FASTX
@@ -72,6 +73,15 @@ include("sequence-buffer.jl")
 ### ReadDatastore generics
 ###
 @inline buffer(ds::ReadDatastore) = SequenceBuffer(ds)
+
+"Get the length of the longest sequence in the datastore"
+@inline maxseqlen(ds::ReadDatastore) = ds.readsize
+
+"Get the name of the datastore"
+@inline name(ds::ReadDatastore) = ds.name
+
+"Get a reference to the underlying filestream the datastore is using"
+@inline stream(ds::ReadDatastore) = ds.stream
 
 Base.firstindex(ds::ReadDatastore) = 1
 Base.lastindex(ds::ReadDatastore) = length(ds)

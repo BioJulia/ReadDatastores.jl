@@ -5,8 +5,10 @@ makedocs(
     sitename = "ReadDatastores.jl",
     pages = [
         "Home"         => "index.md",
+        "Datastore types" => "read-datastores.md",
         "Building & loading datastores" => "build-datastores.md",
-        "Indexing & Iteration" => "indexing.md"
+        "Indexing & Iteration" => "indexing.md",
+        "Additional Methods" => "additional-methods.md"
     ],
     authors = "Ben J. Ward, The BioJulia Organisation and other contributors."
 )

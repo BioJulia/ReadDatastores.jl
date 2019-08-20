@@ -13,10 +13,8 @@ struct PairedReads <: ReadDatastore{LongSequence{DNAAlphabet{4}}}
     stream::IOStream
 end
 
+"Get the orientation of the read pairs"
 @inline orientation(prds::PairedReads) = prds.orientation
-@inline maxseqlen(prds::PairedReads) = prds.readsize
-@inline name(prds::PairedReads) = prds.name
-@inline stream(prds::PairedReads) = prds.stream
 
 ###
 ### PairedReads Header format

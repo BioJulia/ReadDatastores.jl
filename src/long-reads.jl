@@ -13,8 +13,19 @@ struct LongReads <: ReadDatastore{LongSequence{DNAAlphabet{4}}}
     stream::IO
 end
 
-@inline stream(lrds::LongReads) = lrds.stream
 index(lrds::LongReads) = lrds.read_to_file_positions
+
+"Get the length of the longest sequence in the datastore"
+function maxseqlen(lrds::LongReads)
+    max = zero(UInt64)
+    @inbounds for i in index(lrds)
+        ss = i.sequence_size
+        if i.sequence_size > max
+            max = i.sequence_size
+        end
+    end
+    return max
+end
 
 const LongDS_Version = 0x0001
 
