@@ -223,7 +223,7 @@ function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name
     return LinkedReads(outfile * ".lrseq", name, name, readsize, datachunksize, readspos, read_tag, open(outfile * ".lrseq", "r"))
 end
 
-function Base.open(::Type{LinkedReads}, filename::String)
+function Base.open(::Type{LinkedReads}, filename::String, name::Union{String,Nothing} = nothing)
     fd = open(filename, "r")
     magic = read(fd, UInt16)
     dstype = reinterpret(Filetype, read(fd, UInt16))
@@ -239,7 +239,7 @@ function Base.open(::Type{LinkedReads}, filename::String)
     
     read_tags = read_flat_vector(fd, UInt32)
     
-    return LinkedReads(filename, default_name, default_name, readsize, chunksize, position(fd), read_tags, fd)
+    return LinkedReads(filename, ifelse(isnothing(name), default_name, name), default_name, readsize, chunksize, position(fd), read_tags, fd)
 end
 
 bytes_per_read(lrds::LinkedReads) = (lrds.chunksize + 1) * sizeof(UInt64)

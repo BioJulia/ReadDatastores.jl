@@ -116,7 +116,7 @@ function LongReads(rdr::FASTQ.Reader, outfile::String, name::String, min_size::U
     return LongReads(outfile * ".loseq", name, name, read_to_file_position, stream)
 end
 
-function Base.open(::Type{LongReads}, filename::String)
+function Base.open(::Type{LongReads}, filename::String, name::Union{String,Nothing} = nothing)
     fd = open(filename, "r")
     magic = read(fd, UInt16)
     dstype = reinterpret(Filetype, read(fd, UInt16))
@@ -128,7 +128,7 @@ function Base.open(::Type{LongReads}, filename::String)
     default_name = readuntil(fd, '\0')
     seek(fd, fpos)
     read_to_file_position = read_flat_vector(fd, ReadPosSize)
-    return LongReads(filename, default_name, default_name, read_to_file_position, fd)
+    return LongReads(filename, ifelse(isnothing(name), default_name, name), default_name, read_to_file_position, fd)
 end
 
 ###
