@@ -57,7 +57,10 @@ the master branch to try new features before release.
 
 ReadDatastores is tested against Julia `1.X` on Linux, OS X, and Windows.
 
-[![](https://travis-ci.com/BioJulia/ReadDatastores.jl.svg?branch=master)](https://travis-ci.com/BioJulia/ReadDatastores.jl)
+**Latest build status:**
+
+![](https://github.com/BioJulia/ReadDatastores.jl/workflows/Unit%20testing/badge.svg)
+![](https://github.com/BioJulia/ReadDatastores.jl/workflows/Documentation/badge.svg)
 [![](https://codecov.io/gh/BioJulia/ReadDatastores.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/BioJulia/ReadDatastores.jl)
 
 
