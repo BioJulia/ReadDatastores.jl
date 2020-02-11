@@ -8,7 +8,7 @@ Base.:(==)(x::ReadPosSize, y::ReadPosSize) = x.offset == y.offset && x.sequence_
 struct LongReads <: ReadDatastore{LongSequence{DNAAlphabet{4}}}
     filename::String
     name::Symbol
-    default_name::String
+    default_name::Symbol
     read_to_file_positions::Vector{ReadPosSize}
     stream::IO
 end
