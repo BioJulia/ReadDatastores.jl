@@ -46,8 +46,8 @@ end
 
 struct LinkedReads <: ReadDatastore{LongSequence{DNAAlphabet{4}}}
     filename::String          # Filename datastore was opened from.
-    name::String              # Name of the datastore. Useful for other applications.
-    defaultname::String       # Default name, useful for other applications.
+    name::Symbol              # Name of the datastore. Useful for other applications.
+    defaultname::Symbol       # Default name, useful for other applications.
     readsize::UInt64          # Maximum size of any read in this datastore.
     chunksize::UInt64
     readpos_offset::UInt64    #  
@@ -105,11 +105,11 @@ Linked Read Datastore 'ucdavis-test': 166 reads (83 pairs)
 
 ```
 """
-function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name::String, format::LinkedReadsFormat, readsize::Integer, chunksize::Int = 1000000)
+function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name::Union{String,Symbol}, format::LinkedReadsFormat, readsize::Integer, chunksize::Int = 1000000)
     return LinkedReads(fwq, rvq, outfile, name, format, convert(UInt64, readsize), chunksize)
 end
 
-function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name::String, format::LinkedReadsFormat, readsize::UInt64, chunksize::Int = 1000000)
+function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name::Union{String,Symbol}, format::LinkedReadsFormat, readsize::UInt64, chunksize::Int = 1000000)
     n_pairs = 0
     chunk_files = String[]
     
@@ -163,7 +163,7 @@ function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name
     # Write magic no, datastore type, version number.
     write(output, ReadDatastoreMAGIC, LinkedDS, LinkedDS_Version)
     # Write the default name of the datastore.
-    writestring(output, name)
+    writestring(output, String(name))
     # Write the read size, and chunk size.
     write(output, readsize, datachunksize)
     
@@ -216,10 +216,10 @@ function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name
         rm(fname)
     end
     @info string("Created linked sequence datastore with ", n_pairs, " sequence pairs")
-    return LinkedReads(outfile * ".lrseq", name, name, readsize, datachunksize, readspos, read_tag, open(outfile * ".lrseq", "r"))
+    return LinkedReads(outfile * ".lrseq", Symbol(name), Symbol(name), readsize, datachunksize, readspos, read_tag, open(outfile * ".lrseq", "r"))
 end
 
-function Base.open(::Type{LinkedReads}, filename::String, name::Union{String,Nothing} = nothing)
+function Base.open(::Type{LinkedReads}, filename::String, name::Union{Symbol,String,Nothing} = nothing)
     fd = open(filename, "r")
     magic = read(fd, UInt16)
     dstype = reinterpret(Filetype, read(fd, UInt16))
@@ -229,13 +229,13 @@ function Base.open(::Type{LinkedReads}, filename::String, name::Union{String,Not
     @assert dstype == LinkedDS
     @assert version == LinkedDS_Version
     
-    default_name = readuntil(fd, '\0')
+    default_name = Symbol(readuntil(fd, '\0'))
     readsize = read(fd, UInt64)
     chunksize = read(fd, UInt64)
     
     read_tags = read_flat_vector(fd, UInt32)
     
-    return LinkedReads(filename, ifelse(isnothing(name), default_name, name), default_name, readsize, chunksize, position(fd), read_tags, fd)
+    return LinkedReads(filename, isnothing(name) ? default_name : Symbol(name), default_name, readsize, chunksize, position(fd), read_tags, fd)
 end
 
 bytes_per_read(lrds::LinkedReads) = (lrds.chunksize + 1) * sizeof(UInt64)

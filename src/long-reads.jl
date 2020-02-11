@@ -7,8 +7,8 @@ Base.:(==)(x::ReadPosSize, y::ReadPosSize) = x.offset == y.offset && x.sequence_
 
 struct LongReads <: ReadDatastore{LongSequence{DNAAlphabet{4}}}
     filename::String
-    name::String
-    default_name::String
+    name::Symbol
+    default_name::Symbol
     read_to_file_positions::Vector{ReadPosSize}
     stream::IO
 end
@@ -74,9 +74,9 @@ Long Read Datastore 'nanopore-test': 10 reads
 
 ```
 """
-LongReads(rdr::FASTQ.Reader, outfile::String, name::String, min_size::Integer) = LongReads(rdr, outfile, name, convert(UInt64, min_size))
+LongReads(rdr::FASTQ.Reader, outfile::String, name::Union{String,Symbol}, min_size::Integer) = LongReads(rdr, outfile, name, convert(UInt64, min_size))
 
-function LongReads(rdr::FASTQ.Reader, outfile::String, name::String, min_size::UInt64)
+function LongReads(rdr::FASTQ.Reader, outfile::String, name::Union{String,Symbol}, min_size::UInt64)
     discarded = 0
     
     read_to_file_position = Vector{ReadPosSize}()
@@ -84,7 +84,7 @@ function LongReads(rdr::FASTQ.Reader, outfile::String, name::String, min_size::U
     
     write(ofs, ReadDatastoreMAGIC, LongDS, LongDS_Version, zero(UInt64))
     
-    writestring(ofs, name)
+    writestring(ofs, String(name))
     
     record = FASTQ.Record()
     seq = LongSequence{DNAAlphabet{4}}(min_size)
@@ -124,10 +124,10 @@ function LongReads(rdr::FASTQ.Reader, outfile::String, name::String, min_size::U
     @info string("Built long read datastore with ", length(read_to_file_position), " reads") 
     
     stream = open(outfile * ".loseq", "r+")
-    return LongReads(outfile * ".loseq", name, name, read_to_file_position, stream)
+    return LongReads(outfile * ".loseq", Symbol(name), Symbol(name), read_to_file_position, stream)
 end
 
-function Base.open(::Type{LongReads}, filename::String, name::Union{String,Nothing} = nothing)
+function Base.open(::Type{LongReads}, filename::String, name::Union{String,Symbol,Nothing} = nothing)
     fd = open(filename, "r")
     magic = read(fd, UInt16)
     dstype = reinterpret(Filetype, read(fd, UInt16))
@@ -136,10 +136,10 @@ function Base.open(::Type{LongReads}, filename::String, name::Union{String,Nothi
     @assert dstype == LongDS
     @assert version == LongDS_Version
     fpos = read(fd, UInt64)
-    default_name = readuntil(fd, '\0')
+    default_name = Symbol(readuntil(fd, '\0'))
     seek(fd, fpos)
     read_to_file_position = read_flat_vector(fd, ReadPosSize)
-    return LongReads(filename, ifelse(isnothing(name), default_name, name), default_name, read_to_file_position, fd)
+    return LongReads(filename, isnothing(name) ? default_name : Symbol(name), default_name, read_to_file_position, fd)
 end
 
 ###

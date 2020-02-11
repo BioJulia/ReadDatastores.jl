@@ -56,7 +56,7 @@
         fqa = open(FASTQ.Reader, R1)
         fqb = open(FASTQ.Reader, R2)
         
-        ds = LinkedReads(fqa, fqb, "10xtest", "ucdavis-test", UCDavis10x, maxlen, chunksize)
+        ds = LinkedReads(fqa, fqb, "10xtest", Symbol("ucdavis-test"), UCDavis10x, maxlen, chunksize)
         ds2 = open(LinkedReads, "10xtest.lrseq")
         
         ds_seqs = collect(ds)
@@ -74,7 +74,7 @@
     @test check_round_trip("10x_tester_R1.fastq", "10x_tester_R2.fastq", 250, 10)
     
     ds = open(LinkedReads, "10xtest.lrseq")
-    @test ReadDatastores.name(ds) == "ucdavis-test"
+    @test ReadDatastores.name(ds) == Symbol("ucdavis-test")
     @test ReadDatastores.maxseqlen(ds) == 250
     @test check_show(ds, "Linked Read Datastore 'ucdavis-test': 166 reads (83 pairs)")
     @test firstindex(ds) == 1

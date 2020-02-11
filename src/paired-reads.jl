@@ -2,8 +2,8 @@
 
 struct PairedReads <: ReadDatastore{LongSequence{DNAAlphabet{4}}}
     filename::String         # Filename datastore was opened from.
-    name::String             # Name of the datastore. Useful for other applications.
-    defaultname::String      # Default name, useful for other applications.
+    name::Symbol             # Name of the datastore. Useful for other applications.
+    defaultname::Symbol      # Default name, useful for other applications.
     readsize::UInt64         # Maximum size of any read in this datastore.
     chunksize::UInt64        # Number of chunks of sequence data per read.
     fragsize::UInt64         # Fragment size of library.
@@ -87,14 +87,14 @@ Paired Read Datastore 'my-ecoli-test': 20 reads (10 pairs)
 
 ```
 """
-function PairedReads(rdrx::FASTQ.Reader, rdry::FASTQ.Reader, outfile::String, name::String,
+function PairedReads(rdrx::FASTQ.Reader, rdry::FASTQ.Reader, outfile::String, name::Union{String,Symbol},
                      minsize::Integer, maxsize::Integer, fragsize::Integer, orientation::PairedReadOrientation)
     return PairedReads(rdrx, rdry, outfile, name, convert(UInt64, minsize),
                        convert(UInt64, maxsize), convert(UInt64, fragsize), orientation)
 end
 
 function PairedReads(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
-                     outfile::String, name::String,
+                     outfile::String, name::Union{Symbol,String},
                      minsize::UInt64, maxsize::UInt64,
                      fragsize::UInt64, orientation::PairedReadOrientation)
     
@@ -112,7 +112,7 @@ function PairedReads(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
     # Write magic no, datastore type, version number.
     sizepos = write(fd, ReadDatastoreMAGIC, PairedDS, PairedDS_Version) +
     # Write the default name of the datastore.
-    writestring(fd, name) +
+    writestring(fd, String(name)) +
     # Write the read size, and chunk size.
     write(fd, maxsize, chunksize, fragsize, orientation)
     # Write space for size variable (or number of read pairs).
@@ -180,11 +180,11 @@ function PairedReads(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
     @info string("Created paired sequence datastore with ", pairs, " sequence pairs")
     
     stream = open(outfile * ".prseq", "r+")
-    return PairedReads(outfile * ".prseq", name, name, maxsize, chunksize, fragsize,
+    return PairedReads(outfile * ".prseq", Symbol(name), Symbol(name), maxsize, chunksize, fragsize,
                        readpos, nreads, orientation, stream)
 end
 
-function Base.open(::Type{PairedReads}, filename::String, name::Union{String,Nothing} = nothing)
+function Base.open(::Type{PairedReads}, filename::String, name::Union{String,Symbol,Nothing} = nothing)
     fd = open(filename, "r")
     magic = read(fd, UInt16)
     dstype = reinterpret(Filetype, read(fd, UInt16))
@@ -194,7 +194,7 @@ function Base.open(::Type{PairedReads}, filename::String, name::Union{String,Not
     @assert dstype == PairedDS
     @assert version == PairedDS_Version
     
-    default_name = readuntil(fd, '\0')
+    default_name = Symbol(readuntil(fd, '\0'))
     
     readsize = read(fd, UInt64)
     chunksize = read(fd, UInt64)
@@ -203,7 +203,7 @@ function Base.open(::Type{PairedReads}, filename::String, name::Union{String,Not
     nreads = read(fd, UInt64)
     readpos_offset = position(fd)
     
-    return PairedReads(filename, ifelse(isnothing(name), default_name, name), default_name,
+    return PairedReads(filename, isnothing(name) ? default_name : Symbol(name), default_name,
                        readsize, chunksize, fragsize,
                        readpos_offset, nreads, orientation, fd)
 end
