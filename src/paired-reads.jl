@@ -203,7 +203,7 @@ function Base.open(::Type{PairedReads}, filename::String, name::Union{String,Sym
     nreads = read(fd, UInt64)
     readpos_offset = position(fd)
     
-    return PairedReads(filename, ifelse(isnothing(name), default_name, Symbol(name)), default_name,
+    return PairedReads(filename, isnothing(name) ? default_name : Symbol(name), default_name,
                        readsize, chunksize, fragsize,
                        readpos_offset, nreads, orientation, fd)
 end
