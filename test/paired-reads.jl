@@ -13,8 +13,6 @@
         return seqs
     end
     
-    
-    
     function check_round_trip(R1, R2)
         r1_seqs = get_fastq_seqs(R1)
         r2_seqs = get_fastq_seqs(R2)
@@ -40,7 +38,7 @@
     @test check_round_trip("ecoli_tester_R1.fastq", "ecoli_tester_R2.fastq")
     
     ds = open(PairedReads, "ecoli-pe.prseq")
-    @test ReadDatastores.name(ds) == "ecoli-pe"
+    @test ReadDatastores.name(ds) == Symbol("ecoli-pe")
     @test ReadDatastores.maxseqlen(ds) == 300
     @test ReadDatastores.orientation(ds) == FwRv
     @test check_show(ds, "Paired Read Datastore 'ecoli-pe': 20 reads (10 pairs)")
