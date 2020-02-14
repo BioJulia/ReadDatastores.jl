@@ -20,7 +20,7 @@ LinkedReadData(len) = LinkedReadData(LongDNASeq(len), LongDNASeq(len), zero(UInt
 
 const LinkedDS_Version = 0x0001
 
-function _extract_tag_and_sequences!(current_data::LinkedReadData, fwrec::FASTQ.Record, rvrec::FASTQ.Record, readsize::UInt64, ::UCDavisTenX)
+function _extract_tag_and_sequences!(current_data::LinkedReadData, fwrec::FASTQ.Record, rvrec::FASTQ.Record, max_read_len::UInt64, ::UCDavisTenX)
     fwid = FASTQ.identifier(fwrec)
     newtag = zero(UInt32)
     @inbounds for i in 1:16
@@ -38,8 +38,8 @@ function _extract_tag_and_sequences!(current_data::LinkedReadData, fwrec::FASTQ.
         end
     end
     current_data.tag = newtag
-    current_data.seqlen1 = UInt64(min(readsize, FASTQ.seqlen(fwrec)))
-    current_data.seqlen2 = UInt64(min(readsize, FASTQ.seqlen(rvrec)))
+    current_data.seqlen1 = UInt64(min(max_read_len, FASTQ.seqlen(fwrec)))
+    current_data.seqlen2 = UInt64(min(max_read_len, FASTQ.seqlen(rvrec)))
     copyto!(current_data.seq1, 1, fwrec, 1, current_data.seqlen1)
     copyto!(current_data.seq2, 1, rvrec, 1, current_data.seqlen2)
 end
@@ -48,7 +48,7 @@ struct LinkedReads <: ReadDatastore{LongSequence{DNAAlphabet{4}}}
     filename::String          # Filename datastore was opened from.
     name::Symbol              # Name of the datastore. Useful for other applications.
     defaultname::Symbol       # Default name, useful for other applications.
-    readsize::UInt64          # Maximum size of any read in this datastore.
+    max_read_len::UInt64          # Maximum size of any read in this datastore.
     chunksize::UInt64
     readpos_offset::UInt64    #  
     read_tags::Vector{UInt32} #
@@ -56,7 +56,7 @@ struct LinkedReads <: ReadDatastore{LongSequence{DNAAlphabet{4}}}
 end
 
 """
-    LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name::String, format::LinkedReadsFormat, readsize::Integer, chunksize::Int = 1000000)
+    LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name::String, format::LinkedReadsFormat, max_read_len::Integer, chunksize::Int = 1000000)
 
 Construct a Linked Read Datastore from a pair of FASTQ file readers.
 
@@ -105,11 +105,11 @@ Linked Read Datastore 'ucdavis-test': 166 reads (83 pairs)
 
 ```
 """
-function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name::Union{String,Symbol}, format::LinkedReadsFormat, readsize::Integer, chunksize::Int = 1000000)
-    return LinkedReads(fwq, rvq, outfile, name, format, convert(UInt64, readsize), chunksize)
+function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name::Union{String,Symbol}, format::LinkedReadsFormat, max_read_len::Integer, chunksize::Int = 1000000)
+    return LinkedReads(fwq, rvq, outfile, name, format, convert(UInt64, max_read_len), chunksize)
 end
 
-function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name::Union{String,Symbol}, format::LinkedReadsFormat, readsize::UInt64, chunksize::Int = 1000000)
+function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name::Union{String,Symbol}, format::LinkedReadsFormat, max_read_len::UInt64, chunksize::Int = 1000000)
     n_pairs = 0
     chunk_files = String[]
     
@@ -117,7 +117,7 @@ function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name
     
     fwrec = FASTQ.Record()
     rvrec = FASTQ.Record()
-    chunk_data = [LinkedReadData(readsize) for _ in 1:chunksize]
+    chunk_data = [LinkedReadData(max_read_len) for _ in 1:chunksize]
     datachunksize = length(BioSequences.encoded_data(first(chunk_data).seq1))
     
     while !eof(fwq) && !eof(rvq)
@@ -127,7 +127,7 @@ function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name
             read!(fwq, fwrec)
             read!(rvq, rvrec)
             cd_i = chunk_data[chunkfill + 1]
-            _extract_tag_and_sequences!(cd_i, fwrec, rvrec, readsize, format)
+            _extract_tag_and_sequences!(cd_i, fwrec, rvrec, max_read_len, format)
             if cd_i.tag != zero(UInt32)
                 chunkfill = chunkfill + 1
             end
@@ -165,7 +165,7 @@ function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name
     # Write the default name of the datastore.
     writestring(output, String(name))
     # Write the read size, and chunk size.
-    write(output, readsize, datachunksize)
+    write(output, max_read_len, datachunksize)
     
     read_tag_offset = position(output)
     write_flat_vector(output, read_tag)
@@ -216,7 +216,7 @@ function LinkedReads(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name
         rm(fname)
     end
     @info string("Created linked sequence datastore with ", n_pairs, " sequence pairs")
-    return LinkedReads(outfile * ".lrseq", Symbol(name), Symbol(name), readsize, datachunksize, readspos, read_tag, open(outfile * ".lrseq", "r"))
+    return LinkedReads(outfile * ".lrseq", Symbol(name), Symbol(name), max_read_len, datachunksize, readspos, read_tag, open(outfile * ".lrseq", "r"))
 end
 
 function Base.open(::Type{LinkedReads}, filename::String, name::Union{Symbol,String,Nothing} = nothing)
@@ -230,12 +230,12 @@ function Base.open(::Type{LinkedReads}, filename::String, name::Union{Symbol,Str
     @assert version == LinkedDS_Version
     
     default_name = Symbol(readuntil(fd, '\0'))
-    readsize = read(fd, UInt64)
+    max_read_len = read(fd, UInt64)
     chunksize = read(fd, UInt64)
     
     read_tags = read_flat_vector(fd, UInt32)
     
-    return LinkedReads(filename, isnothing(name) ? default_name : Symbol(name), default_name, readsize, chunksize, position(fd), read_tags, fd)
+    return LinkedReads(filename, isnothing(name) ? default_name : Symbol(name), default_name, max_read_len, chunksize, position(fd), read_tags, fd)
 end
 
 bytes_per_read(lrds::LinkedReads) = (lrds.chunksize + 1) * sizeof(UInt64)
@@ -251,7 +251,7 @@ end
 
 @inline function Base.getindex(lrds::LinkedReads, idx::Integer)
     @boundscheck checkbounds(lrds, idx)
-    seq = eltype(lrds)(lrds.readsize)
+    seq = eltype(lrds)(lrds.max_read_len)
     return inbounds_load_sequence!(lrds, idx, seq)
 end
 

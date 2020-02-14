@@ -66,7 +66,7 @@ function _load_sequence_from_pos(sb::SequenceBuffer, pos::Integer)
     offset = pos - bufferpos(sb)
     sequence_length = unsafe_load(convert(Ptr{UInt64}, pointer(bufferdata(sb), offset + 1)))
     offset = offset + sizeof(UInt64)
-    seq = LongSequence{DNAAlphabet{4}}(sequence_length)
+    seq = eltype(sb)(sequence_length)
     return _load_sequence_data!(seq, sb, offset)
 end
 
@@ -80,7 +80,7 @@ end
 
 function _load_sequence_from_pos(sb::SequenceBuffer, pos::ReadPosSize)
     offset = pos.offset - bufferpos(sb)
-    seq = LongSequence{DNAAlphabet{4}}(pos.sequence_size)
+    seq = eltype(sb)(pos.sequence_size)
     return _load_sequence_data!(seq, sb, offset)
 end
 

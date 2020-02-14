@@ -75,7 +75,7 @@ include("sequence-buffer.jl")
 @inline buffer(ds::ReadDatastore) = SequenceBuffer(ds)
 
 "Get the length of the longest sequence in the datastore"
-@inline maxseqlen(ds::ReadDatastore) = ds.readsize
+@inline maxseqlen(ds::ReadDatastore) = ds.max_read_len
 
 "Get the name of the datastore"
 @inline name(ds::ReadDatastore) = ds.name

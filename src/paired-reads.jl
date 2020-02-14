@@ -1,11 +1,11 @@
 @enum PairedReadOrientation::UInt64 FwRv=1 RvFw=2
 
-struct PairedReads <: ReadDatastore{LongSequence{DNAAlphabet{4}}}
+struct PairedReads{A<:DNAAlphabet} <: ReadDatastore{LongSequence{A}}
     filename::String         # Filename datastore was opened from.
     name::Symbol             # Name of the datastore. Useful for other applications.
     defaultname::Symbol      # Default name, useful for other applications.
-    readsize::UInt64         # Maximum size of any read in this datastore.
-    chunksize::UInt64        # Number of chunks of sequence data per read.
+    max_read_len::UInt64     # Maximum size of any read in this datastore.
+    chunksize::UInt64        # Number of chunks (UInt64) of sequence data per read.
     fragsize::UInt64         # Fragment size of library.
     readpos_offset::UInt64
     size::UInt64
@@ -15,9 +15,10 @@ end
 
 "Get the orientation of the read pairs"
 @inline orientation(prds::PairedReads) = prds.orientation
+@inline BioSequences.bits_per_symbol(prds::PairedReads{A}) where {A<:DNAAlphabet} = BioSequences.bits_per_symbol(A())
 
 ###
-### PairedReads Header format
+### PairedReads Header format on disk.
 ###
 
 # | Field             | Value  | Type        |
@@ -30,9 +31,10 @@ end
 # | Chunk size        | N/A    | UInt64      | 8
 # | Fragment size     | N/A    | UInt64      | 8
 # | Orientation       | N/A    | Orientation | 8
+# | Bits Per Nuc      | N/A    | UInt64      | 8
 # | Number of Reads   | N/A    | UInt64      | 8
 
-const PairedDS_Version = 0x0001
+const PairedDS_Version = 0x0002
 
 """
     PairedReads(rdrx::FASTQ.Reader, rdry::FASTQ.Reader, outfile::String, name::String, minsize::Integer, maxsize::Integer, fragsize::Integer, orientation::PairedReadOrientation)
@@ -87,25 +89,26 @@ Paired Read Datastore 'my-ecoli-test': 20 reads (10 pairs)
 
 ```
 """
-function PairedReads(rdrx::FASTQ.Reader, rdry::FASTQ.Reader, outfile::String, name::Union{String,Symbol},
-                     minsize::Integer, maxsize::Integer, fragsize::Integer, orientation::PairedReadOrientation)
-    return PairedReads(rdrx, rdry, outfile, name, convert(UInt64, minsize),
+function PairedReads{A}(rdrx::FASTQ.Reader, rdry::FASTQ.Reader, outfile::String, name::Union{String,Symbol},
+                     minsize::Integer, maxsize::Integer, fragsize::Integer, orientation::PairedReadOrientation) where {A<:DNAAlphabet}
+    return PairedReads{A}(rdrx, rdry, outfile, name, convert(UInt64, minsize),
                        convert(UInt64, maxsize), convert(UInt64, fragsize), orientation)
 end
 
-function PairedReads(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
+function PairedReads{A}(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
                      outfile::String, name::Union{Symbol,String},
                      minsize::UInt64, maxsize::UInt64,
-                     fragsize::UInt64, orientation::PairedReadOrientation)
+                     fragsize::UInt64, orientation::PairedReadOrientation) where {A<:DNAAlphabet}
     
     # Create and allocate the sequence and record objects.
     lread = FASTQ.Record()
     rread = FASTQ.Record()
-    lseq = LongSequence{DNAAlphabet{4}}(maxsize)
-    rseq = LongSequence{DNAAlphabet{4}}(maxsize)
+    lseq = LongSequence{A}(maxsize)
+    rseq = LongSequence{A}(maxsize)
     
     #chunksize::UInt64 = BioSequences.seq_data_len(DNAAlphabet{4}, maxsize)
     chunksize::UInt64 = length(BioSequences.encoded_data(lseq))
+    bps = UInt64(BioSequences.bits_per_symbol(A()))
     
     fd = open(outfile * ".prseq", "w")
     
@@ -114,7 +117,7 @@ function PairedReads(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
     # Write the default name of the datastore.
     writestring(fd, String(name)) +
     # Write the read size, and chunk size.
-    write(fd, maxsize, chunksize, fragsize, orientation)
+    write(fd, maxsize, chunksize, fragsize, orientation, bps)
     # Write space for size variable (or number of read pairs).
     readpos = write(fd, UInt64(0)) + sizepos
     
@@ -180,11 +183,11 @@ function PairedReads(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
     @info string("Created paired sequence datastore with ", pairs, " sequence pairs")
     
     stream = open(outfile * ".prseq", "r+")
-    return PairedReads(outfile * ".prseq", Symbol(name), Symbol(name), maxsize, chunksize, fragsize,
+    return PairedReads{A}(outfile * ".prseq", Symbol(name), Symbol(name), maxsize, chunksize, fragsize,
                        readpos, nreads, orientation, stream)
 end
 
-function Base.open(::Type{PairedReads}, filename::String, name::Union{String,Symbol,Nothing} = nothing)
+function Base.open(::Type{PairedReads{A}}, filename::String, name::Union{String,Symbol,Nothing} = nothing) where {A<:DNAAlphabet}
     fd = open(filename, "r")
     magic = read(fd, UInt16)
     dstype = reinterpret(Filetype, read(fd, UInt16))
@@ -196,15 +199,17 @@ function Base.open(::Type{PairedReads}, filename::String, name::Union{String,Sym
     
     default_name = Symbol(readuntil(fd, '\0'))
     
-    readsize = read(fd, UInt64)
+    max_read_len = read(fd, UInt64)
     chunksize = read(fd, UInt64)
     fragsize = read(fd, UInt64)
     orientation = reinterpret(PairedReadOrientation, read(fd, UInt64))
+    bps = read(fd, UInt64)
+    @assert bps == BioSequences.bits_per_symbol(A())
     nreads = read(fd, UInt64)
     readpos_offset = position(fd)
     
-    return PairedReads(filename, isnothing(name) ? default_name : Symbol(name), default_name,
-                       readsize, chunksize, fragsize,
+    return PairedReads{A}(filename, isnothing(name) ? default_name : Symbol(name), default_name,
+                       max_read_len, chunksize, fragsize,
                        readpos_offset, nreads, orientation, fd)
 end
 
@@ -222,6 +227,6 @@ bytes_per_read(prds::PairedReads) = (prds.chunksize + 1) * sizeof(UInt64)
 
 @inline function Base.getindex(prds::PairedReads, idx::Integer)
     @boundscheck checkbounds(prds, idx)
-    seq = eltype(prds)(prds.readsize)
+    seq = eltype(prds)(prds.max_read_len)
     return inbounds_load_sequence!(prds, idx, seq)
 end
