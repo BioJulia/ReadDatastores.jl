@@ -17,25 +17,25 @@ julia&gt; seq
 ATTACTGCGATTACTGCTGCGAATTTTTTCATGTTTATT…GTCCACTGGTTTACACAAGGTCGTAAGGGAAAAGAGGCG
 </code></pre><h1 id="Iteration-1"><a class="docs-heading-anchor" href="#Iteration-1">Iteration</a><a class="docs-heading-anchor-permalink" href="#Iteration-1" title="Permalink"></a></h1><p>The ReadDatastore types also support the <code>Base.iterate</code> interface:</p><pre><code class="language-julia-repl">julia&gt; collect(ds)
 20-element Array{LongSequence{DNAAlphabet{2}},1}:
- NGGGCTTTAAAATCCACTTTTTCCATATCGATAGTCACG…ATTTCTTCGATTCTTCTTTGTCACCGCAGCCAGCAAGAG
+ GGGCTTTAAAATCCACTTTTTCCATATCGATAGTCACGT…ATTTCTTCGATTCTTCTTTGTCACCGCAGCCAGCAAGAG
  GTGGGTTTTTATCGGCTGGCACATGTGTTGGGACAATTT…GGCTTTCAATACGCTGTTTTCCCTCGTTGTTTCATCTGT
- NTGAACTCCACATCCTGCGGATCGTAAACCGTCACCTCT…TCTTCCAGGCAGGCCGCCAGGGTATCACCTTCCAGACCA
+ TGAACTCCACATCCTGCGGATCGTAAACCGTCACCTCTT…TCTTCCAGGCAGGCCGCCAGGGTATCACCTTCCAGACCA
  GATGAATCTGGCGGTTATTAACGGTAACAATAACCAGCA…AGACGGCAAACCGGCTGCAGGCGGTAGGTTGTTGCAGGT
- NACATGCACTTCAACGGCATTACTGGTGACCTCTTCGTC…TTCTATCAACGCAAAAGGGTTACACAGATAATCGTCAGC
+ ACATGCACTTCAACGGCATTACTGGTGACCTCTTCGTCC…TTCTATCAACGCAAAAGGGTTACACAGATAATCGTCAGC
  ATTACTGCGATTACTGCTGCGAATTTTTTCATGTTTATT…GTCCACTGGTTTACACAAGGTCGTAAGGGAAAAGAGGCG
- NCGGTTGAGTTCAAAGGCAAAGATTTGCTTGCGCTGTCG…TTTTCCGGCGGCGAGAAAAAGCGCAACGATTTTTTGCAA
+ CGGTTGAGTTCAAAGGCAAAGATTTGCTTGCGCTGTCGC…TTTTCCGGCGGCGAGAAAAAGCGCAACGATTTTTTGCAA
  TTCGTCCCTGATATAGCACATGAACGTAATCAGGCTTGA…AATCTTCCGGCATCTTCAGGAGAGCGATTTTCTCTTCCA
- NACGACACATTACCGGAAATTCAGGCCGACCCGGACAGG…GTTGAACAACACGGTGGTACAATTCAGGTCGCAAGCCAG
+ ACGACACATTACCGGAAATTCAGGCCGACCCGGACAGGC…GTTGAACAACACGGTGGTACAATTCAGGTCGCAAGCCAG
  TCCACCACCAGAATATCGATATTATCGTGCGTCATCCTT…TCACGCCCGCGCCGCTTTCGCTGGCCGTCACGCTAATCA
- NCGTAACTTTATTCATATCTCTTCCCCCTCCCTGTACTT…TCTGTTACCGCATGGCGGCAGTGCGCTGGTCGATATGAC
+ CGTAACTTTATTCATATCTCTTCCCCCTCCCTGTACTTC…TCTGTTACCGCATGGCGGCAGTGCGCTGGTCGATATGAC
  ATCGGGTAGGGGACGGAACGAATACGACAGTCAATATTC…AAGACTTTATCGTGCGGTCCGAACCGACTTTGTGGCGGC
- NGCCCTGGAGCTGGTGAAAGAAGGTCGAGCGCAAGCCTG…CAATCCTCGCGTGGCGTTGCTCAATATTGGTGAAGAAGA
+ GCCCTGGAGCTGGTGAAAGAAGGTCGAGCGCAAGCCTGT…CAATCCTCGCGTGGCGTTGCTCAATATTGGTGAAGAAGA
  GAAAGGAACATCCTGACAACACCTTCCATCGTCTTTAAT…ATAAAGGCAAATTGCACCACCATGATGCTGTCCCAATCA
- NGTCTGGTGGTGCCTCTTTACTTAAGGAATTTCATCCTG…TAACGATGCCAGGCACCTGCGAAACTTTCCTGCACCAGC
+ GTCTGGTGGTGCCTCTTTACTTAAGGAATTTCATCCTGT…TAACGATGCCAGGCACCTGCGAAACTTTCCTGCACCAGC
  GACCGTTTTTCCCCAATCCGAGAACGCATAAATCCAGAC…TTTCTTCCCGGTAATGATACGTCACTATTGGAGTGGCCC
- NAGAGGCCACAGCGCGCCCATAATGGCGACTGAAAGCCA…TTTCACCGCGGTGACCGGAATCAGGGCAAATTCGACATG
+ AGAGGCCACAGCGCGCCCATAATGGCGACTGAAAGCCAG…TTTCACCGCGGTGACCGGAATCAGGGCAAATTCGACATG
  AAAAGGATCGCCGACCTTAACCATTCTGAATGTGATTGG…CTGGTGCCTGTCATATTTCGAACTCTGGGGGGACAGCAT
- NTGAGCAAATATGCCCGACCCAGCCTCATGACAGCGATA…AACCGAAAAAAAAGTAATCGTCGGCATGTCCGGCGGTGT
+ TGAGCAAATATGCCCGACCCAGCCTCATGACAGCGATAT…AACCGAAAAAAAAGTAATCGTCGGCATGTCCGGCGGTGT
  AGGCTTTAAATTTGATCTCTTTGTTGCACAGAATATCCG…GCCAGGAAGAAACGGAGGAACCGACACCGCCGGCCATGC
 </code></pre><h1 id="Buffers-1"><a class="docs-heading-anchor" href="#Buffers-1">Buffers</a><a class="docs-heading-anchor-permalink" href="#Buffers-1" title="Permalink"></a></h1><p>When iterating over a <code>ReadDatastore</code> either using <code>Base.getindex</code> or <code>load_sequence!</code>, you can sacrifice some memory for a buffer, to reduce the number of times the hard disk is read, and speed up sequential access and iteration. You can use the <code>buffer</code> method to wrap a datastore in such a buffer.</p><pre><code class="language-julia-repl">julia&gt; bds = buffer(ds)
 Buffered Paired Read Datastore &#39;my-ecoli-pe&#39;: 20 reads (10 pairs)
@@ -64,4 +64,4 @@ julia&gt; for i in eachindex(bds)
 300
 300
 300
-</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../build-datastores/">« Building &amp; loading datastores</a><a class="docs-footer-nextpage" href="../additional-methods/">Additional Methods »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Thursday 27 February 2020 13:43">Thursday 27 February 2020</span>. Using Julia version 1.3.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../build-datastores/">« Building &amp; loading datastores</a><a class="docs-footer-nextpage" href="../additional-methods/">Additional Methods »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Thursday 27 February 2020 13:51">Thursday 27 February 2020</span>. Using Julia version 1.3.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
