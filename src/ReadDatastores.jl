@@ -12,13 +12,13 @@ export
     SequenceBuffer,
     
     name,
-    maxseqlen,
+    max_read_length,
     orientation,
     load_sequence!,
     buffer,
-    read_tag
-    
-    
+    read_tag,
+    stream
+
 using BioSequences, FASTX
 
 const ReadDatastoreMAGIC = 0x05D5
@@ -59,11 +59,12 @@ end
 ###
 ### Abstract ReadDatastore type
 ###
-abstract type ReadDatastore{S<:BioSequence} end
+abstract type ReadDatastore{S<:LongSequence} end
 
 ###
 ### Concrete ReadDatastore type definitions
 ###
+include("short-reads.jl")
 include("paired-reads.jl")
 include("long-reads.jl")
 include("linked-reads.jl")
@@ -72,10 +73,11 @@ include("sequence-buffer.jl")
 ###
 ### ReadDatastore generics
 ###
-@inline buffer(ds::ReadDatastore) = SequenceBuffer(ds)
+@inline buffer(ds::ReadDatastore, buffer_size = DEFAULT_BUF_SIZE) = DatastoreBuffer(ds, buffer_size)
 
-"Get the length of the longest sequence in the datastore"
-@inline maxseqlen(ds::ReadDatastore) = ds.readsize
+# TODO: Phase out
+#"Get the length of the longest sequence in the datastore"
+#@inline maxseqlen(ds::ReadDatastore) = ds.max_read_len
 
 "Get the name of the datastore"
 @inline name(ds::ReadDatastore) = ds.name
@@ -83,13 +85,13 @@ include("sequence-buffer.jl")
 "Get a reference to the underlying filestream the datastore is using"
 @inline stream(ds::ReadDatastore) = ds.stream
 
-Base.firstindex(ds::ReadDatastore) = 1
-Base.lastindex(ds::ReadDatastore) = length(ds)
-Base.eachindex(ds::ReadDatastore) = Base.OneTo(lastindex(ds))
-Base.IteratorSize(ds::ReadDatastore) = Base.HasLength()
-Base.IteratorEltype(ds::ReadDatastore) = Base.HasEltype()
-Base.eltype(ds::ReadDatastore{T}) where {T} = T
-Base.close(ds::ReadDatastore) = close(stream(ds))
+@inline Base.firstindex(ds::ReadDatastore) = 1
+@inline Base.lastindex(ds::ReadDatastore) = length(ds)
+@inline Base.eachindex(ds::ReadDatastore) = Base.OneTo(lastindex(ds))
+@inline Base.IteratorSize(ds::ReadDatastore) = Base.HasLength()
+@inline Base.IteratorEltype(ds::ReadDatastore) = Base.HasEltype()
+@inline Base.eltype(ds::ReadDatastore{T}) where {T} = T
+@inline Base.close(ds::ReadDatastore) = close(stream(ds))
 
 @inline function Base.checkbounds(ds::ReadDatastore, i::Integer)
     if firstindex(ds) ≤ i ≤ lastindex(ds)
@@ -115,10 +117,6 @@ function Base.open(f::Function, ::Type{T}, filepath::AbstractString) where {T<:R
     end
 end
 
-## Loading a sequence from a datastore - generic internals
-
-function _inbounds_index_of_sequence end
-
 """
     _load_sequence_data!(prds::PairedReads, seq::LongSequence{DNAAlphabet{4}})
 
@@ -143,30 +141,6 @@ function _load_sequence_data!(ds::ReadDatastore{T}, seq::T) where {T<:LongSequen
     seqdata = BioSequences.encoded_data(seq)
     GC.@preserve seqdata unsafe_read(stream(ds), pointer(seqdata), sizeof(seqdata))
     return seq
-end
-
-function _load_sequence_from_file_pos!(ds::ReadDatastore{T}, pos::Integer, seq::T) where {T<:LongSequence}
-    seek(stream(ds), pos)
-    seqlen = read(stream(ds), UInt64)
-    resize!(seq, seqlen)
-    return _load_sequence_data!(ds, seq)
-end
-
-function _load_sequence_from_file_pos!(ds::ReadDatastore{T}, pos::ReadPosSize, seq::T) where {T<:LongSequence}
-    seek(stream(ds), pos.offset)
-    resize!(seq, pos.sequence_size)
-    return _load_sequence_data!(ds, seq)
-end
-    
-
-@inline function inbounds_load_sequence!(ds::ReadDatastore{T}, i::Integer, seq::T) where {T<:LongSequence}
-    pos = _inbounds_index_of_sequence(ds, i)
-    return _load_sequence_from_file_pos!(ds, pos, seq)
-end
-
-@inline function load_sequence!(ds::ReadDatastore{T}, i::Integer, seq::T) where {T<:LongSequence}
-    checkbounds(ds, i)
-    return inbounds_load_sequence!(ds, i, seq)
 end
 
 end # module

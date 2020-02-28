@@ -1,57 +1,46 @@
 const DEFAULT_BUF_SIZE = UInt64(1024 * 1024 * 30)
-const DEFAULT_CHUNK_SIZE = UInt64(1024 * 1024 * 4)
 
-mutable struct SequenceBuffer{T<:ReadDatastore}
+@inline megabytes(n::T) where {T<:Unsigned} = (T(1024) * T(1024)) * n
+@inline megabytes(n::Signed) = megabytes(unsigned(n))
+
+@inline gigabytes(n::T) where {T<:Unsigned} = (T(1024) * T(1024) * T(1024)) * n
+@inline gigabytes(n::Signed) = gigabytes(unsigned(n))
+
+mutable struct DatastoreBuffer{T<:ReadDatastore}
     data_store::T
     bufferdata::Vector{UInt8}
-    chunk_size::Int
     buffer_position::Int
 end
 
-function SequenceBuffer(ds::T) where {T<:ReadDatastore}
-    return SequenceBuffer{T}(ds, Vector{UInt8}(undef, DEFAULT_BUF_SIZE), DEFAULT_CHUNK_SIZE, typemax(Int))
+function DatastoreBuffer(ds::T, buffer_size = DEFAULT_BUF_SIZE) where {T<:ReadDatastore}
+    return DatastoreBuffer{T}(ds, Vector{UInt8}(undef, buffer_size), typemax(Int))
 end
 
-@inline chunksize(sb::SequenceBuffer) = sb.chunk_size
-@inline buffersize(sb::SequenceBuffer) = length(bufferdata(sb))
-@inline bufferpos(sb::SequenceBuffer) = sb.buffer_position
-@inline bufferpos!(sb::SequenceBuffer, pos) = sb.buffer_position = pos
-@inline datastore(sb::SequenceBuffer) = sb.data_store
-@inline stream(sb::SequenceBuffer) = stream(datastore(sb))
-@inline bufferdata(sb::SequenceBuffer) = sb.bufferdata
-
-Base.eltype(sb::SequenceBuffer) = Base.eltype(datastore(sb))
-Base.firstindex(sb::SequenceBuffer) = firstindex(datastore(sb))
-Base.lastindex(sb::SequenceBuffer) = lastindex(datastore(sb))
-Base.length(sb::SequenceBuffer) = length(datastore(sb))
-Base.eachindex(sb::SequenceBuffer) = eachindex(datastore(sb))
-Base.IteratorSize(sb::SequenceBuffer) = Base.IteratorSize(datastore(sb))
-Base.IteratorEltype(sb::SequenceBuffer) = Base.IteratorEltype(datastore(sb))
-
-Base.checkbounds(sb::SequenceBuffer, i::Integer) = Base.checkbounds(datastore(sb), i)
-
-function _check_for_buffer_refresh(sb::SequenceBuffer, filepos::Integer)
-    if filepos < bufferpos(sb) || (filepos + chunksize(sb)) > bufferpos(sb) + buffersize(sb)
-        bufferpos!(sb, filepos)
-        seek(stream(sb), filepos)
-        readbytes!(stream(sb), bufferdata(sb), buffersize(sb))
+function DatastoreBuffer(ds::ShortReads, buffer_size = DEFAULT_BUF_SIZE)
+    if _bytes_per_read(ds) > buffer_size
+        error("Desired buffer size is too small")
     end
+    return DatastoreBuffer{typeof(ds)}(ds, Vector{UInt8}(undef, buffer_size), typemax(Int))
 end
 
-function _check_for_buffer_refresh(sb::SequenceBuffer{<:LongReads}, filepos::ReadPosSize)
-    # The default chunk size is 4 megs, which should be more than enough for long reads,
-    # but we place this guard here just in case.
-    if chunksize(sb) < filepos.sequence_size
-        message = string("Reading a sequence from buffered datastore ",
-                         name(datastore(sb)),
-                         " failed!\nThe size of the buffer chunk is smaller than a sequence.\nIncrease the buffer chunk size to fix this.")
-        throw(ErrorException(message))
-    end
-    _check_for_buffer_refresh(sb, filepos.offset) 
-end
+@inline buffer_len(sb::DatastoreBuffer) = length(buffer_array(sb))
+@inline buffer_position(sb::DatastoreBuffer) = sb.buffer_position
+@inline bufferpos!(sb::DatastoreBuffer, pos) = sb.buffer_position = pos
+@inline datastore(sb::DatastoreBuffer) = sb.data_store
+@inline stream(sb::DatastoreBuffer) = stream(datastore(sb))
+@inline buffer_array(sb::DatastoreBuffer) = sb.bufferdata
 
-function _load_sequence_data!(seq::LongSequence, sb::SequenceBuffer, offset::Integer)
-    bufdata = bufferdata(sb)
+@inline Base.eltype(sb::DatastoreBuffer) = Base.eltype(datastore(sb))
+@inline Base.firstindex(sb::DatastoreBuffer) = firstindex(datastore(sb))
+@inline Base.lastindex(sb::DatastoreBuffer) = lastindex(datastore(sb))
+@inline Base.length(sb::DatastoreBuffer) = length(datastore(sb))
+@inline Base.eachindex(sb::DatastoreBuffer) = eachindex(datastore(sb))
+@inline Base.IteratorSize(sb::DatastoreBuffer) = Base.IteratorSize(datastore(sb))
+@inline Base.IteratorEltype(sb::DatastoreBuffer) = Base.IteratorEltype(datastore(sb))
+@inline Base.checkbounds(sb::DatastoreBuffer, i::Integer) = Base.checkbounds(datastore(sb), i)
+
+@inline function _load_sequence_data!(seq::LongSequence{A}, sb::DatastoreBuffer, offset::Integer) where {A<:DNAAlphabet}
+    bufdata = buffer_array(sb)
     seqdata = BioSequences.encoded_data(seq)
     GC.@preserve bufdata begin
         for i in eachindex(seqdata)
@@ -62,68 +51,91 @@ function _load_sequence_data!(seq::LongSequence, sb::SequenceBuffer, offset::Int
     return seq    
 end
 
-function _load_sequence_from_pos(sb::SequenceBuffer, pos::Integer)
-    offset = pos - bufferpos(sb)
-    sequence_length = unsafe_load(convert(Ptr{UInt64}, pointer(bufferdata(sb), offset + 1)))
-    offset = offset + sizeof(UInt64)
-    seq = LongSequence{DNAAlphabet{4}}(sequence_length)
-    return _load_sequence_data!(seq, sb, offset)
+# Short Reads specific buffering.
+
+@inline function _check_for_buffer_refresh!(sb::DatastoreBuffer{<:ShortReads{<:DNAAlphabet}}, file_offset::Integer)
+    # IF the desired data is contained in the buffer, there's no need to refresh.
+    # Otherwise, there is!
+    buf_start = buffer_position(sb)
+    buf_size = buffer_len(sb)
+    file_end = file_offset + _bytes_per_read(datastore(sb))
+    if file_offset < buf_start || file_end > buf_start + buf_size
+        bufferpos!(sb, file_offset)
+        seek(stream(sb), file_offset)
+        readbytes!(stream(sb), buffer_array(sb), buf_size)
+    end
 end
 
-function _load_sequence_from_pos!(sb::SequenceBuffer, pos::Integer, seq::LongSequence)
-    offset = pos - bufferpos(sb)
-    sequence_length = unsafe_load(convert(Ptr{UInt64}, pointer(bufferdata(sb), offset + 1)))
-    offset = offset + sizeof(UInt64)
-    resize!(seq, sequence_length)
-    return _load_sequence_data!(seq, sb, offset)
-end
-
-function _load_sequence_from_pos(sb::SequenceBuffer, pos::ReadPosSize)
-    offset = pos.offset - bufferpos(sb)
-    seq = LongSequence{DNAAlphabet{4}}(pos.sequence_size)
-    return _load_sequence_data!(seq, sb, offset)
-end
-
-function _load_sequence_from_pos!(sb::SequenceBuffer, pos::ReadPosSize, seq::LongSequence)
-    offset = pos.offset - bufferpos(sb)
-    resize!(seq, pos.sequence_size)
-    return _load_sequence_data!(seq, sb, offset)
-end
-
-
-@inline function Base.getindex(sb::SequenceBuffer, idx::Integer)
+@inline function Base.getindex(sb::DatastoreBuffer{<:ShortReads{<:DNAAlphabet}}, idx::Integer)
     @boundscheck checkbounds(sb, idx)
-    # Get the position in the file that the read data begins.
-    position_in_file = _inbounds_index_of_sequence(datastore(sb), idx)
-    # Knowing the position in the file, check if the buffer will need
-    # refreshing. To avoid refresh, the buffer needs to fully contain the read
-    # desired.
-    _check_for_buffer_refresh(sb, position_in_file)
-    # Now we know the buffer was refreshed if needed, get the sequence from the
-    # buffer. This function will translate `position_in_file` to an offset in
-    # the buffer, and load the sequence.
-    return _load_sequence_from_pos(sb, position_in_file)
+    file_offset = _offset_of_sequence(datastore(sb), idx)
+    _check_for_buffer_refresh!(sb, file_offset)
+    
+    buffer_offset = file_offset - buffer_position(sb)
+    sequence_length = unsafe_load(convert(Ptr{UInt64}, pointer(buffer_array(sb), buffer_offset + 1)))
+    buffer_offset = buffer_offset + sizeof(UInt64)
+    seq = eltype(sb)(sequence_length)
+    
+    return _load_sequence_data!(seq, sb, buffer_offset)
 end
 
-@inline function inbounds_load_sequence!(sb::SequenceBuffer{DS}, i::Integer, seq::T) where {T<:LongSequence,DS<:ReadDatastore{T}}
-    # Get the position in the file that the read data begins.
-    position_in_file = _inbounds_index_of_sequence(datastore(sb), i)
-    # Knowing the position in the file, check if the buffer will need
-    # refreshing. To avoid refresh, the buffer needs to fully contain the read
-    # desired.
-    _check_for_buffer_refresh(sb, position_in_file)
-    # Now we know the buffer was refreshed if needed, get the sequence from the
-    # buffer. This function will translate `position_in_file` to an offset in
-    # the buffer, and load the sequence.
-    return _load_sequence_from_pos!(sb, position_in_file, seq)
+@inline function inbounds_load_sequence!(sb::DatastoreBuffer{<:ShortReads{A}}, i::Integer, seq::LongSequence{A}) where {A<:DNAAlphabet}
+    file_offset = _offset_of_sequence(datastore(sb), i)
+    _check_for_buffer_refresh!(sb, file_offset)
+    
+    buffer_offset = file_offset - buffer_position(sb)
+    sequence_length = unsafe_load(convert(Ptr{UInt64}, pointer(buffer_array(sb), buffer_offset + 1)))
+    buffer_offset = buffer_offset + sizeof(UInt64)
+    resize!(seq, sequence_length)
+    
+    return _load_sequence_data!(seq, sb, buffer_offset)
 end
 
-@inline function load_sequence!(sb::SequenceBuffer{DS}, i::Integer, seq::T) where {T<:LongSequence,DS<:ReadDatastore{T}}
+# Long reads specific buffering
+
+@inline function _check_for_buffer_refresh!(sb::DatastoreBuffer{LongReads{A}}, filepos::ReadPosSize) where {A<:DNAAlphabet}
+    # If the buffer is too small to even fit the sequence. It will need to be
+    # resized to be made bigger.
+    n_bytes_req = cld(filepos.sequence_size, div(8, BioSequences.bits_per_symbol(A())))
+    buf_start = buffer_position(sb)
+    buf_size = buffer_len(sb)
+    if buf_size < n_bytes_req
+        @info "Resizing buffer!"
+        resize!(sb.bufferdata, n_bytes_req)
+        buf_size = n_bytes_req
+    end
+    file_start = filepos.offset
+    file_end = file_start + n_bytes_req
+    if file_start < buf_start || file_end > buf_start + buf_size
+        bufferpos!(sb, file_start)
+        seek(stream(sb), file_start)
+        readbytes!(stream(sb), buffer_array(sb), buf_size)
+    end
+end
+
+@inline function inbounds_load_sequence!(sb::DatastoreBuffer{LongReads{A}}, i::Integer, seq::LongSequence{A}) where {A<:DNAAlphabet}
+    file_index = _inbounds_index_of_sequence(datastore(sb), i)
+    _check_for_buffer_refresh!(sb, file_index)
+    resize!(seq, file_index.sequence_size)
+    buffer_offset = file_index.offset - buffer_position(sb)
+    return _load_sequence_data!(seq, sb, buffer_offset)
+end
+
+@inline function Base.getindex(sb::DatastoreBuffer{LongReads{A}}, idx::Integer) where {A<:DNAAlphabet}
+    @boundscheck checkbounds(sb, idx)
+    file_index = _inbounds_index_of_sequence(datastore(sb), idx)
+    _check_for_buffer_refresh!(sb, file_index)
+    seq = eltype(sb)(file_index.sequence_size)
+    buffer_offset = file_index.offset - buffer_position(sb)
+    return _load_sequence_data!(seq, sb, buffer_offset)
+end
+
+@inline function load_sequence!(sb::DatastoreBuffer{DS}, i::Integer, seq::T) where {T<:LongSequence,DS<:ReadDatastore{T}}
     checkbounds(sb, i)
     return inbounds_load_sequence!(sb, i, seq)
 end
 
-@inline function Base.iterate(sb::SequenceBuffer, state = 1)
+@inline function Base.iterate(sb::DatastoreBuffer, state = 1)
     @inbounds if firstindex(sb) ≤ state ≤ lastindex(sb)
         return sb[state], state + 1
     else
@@ -131,6 +143,6 @@ end
     end
 end
 
-Base.summary(io::IO, sb::SequenceBuffer) = print(io, "Buffered ", summary(datastore(sb)))
+@inline Base.summary(io::IO, sb::DatastoreBuffer) = print(io, "Buffered ", summary(datastore(sb)))
 
-Base.show(io::IO, sb::SequenceBuffer) = summary(io, sb)
+@inline Base.show(io::IO, sb::DatastoreBuffer) = summary(io, sb)

@@ -20,7 +20,7 @@
         return tag
     end
     
-    function get_fastq_seqs(r1, r2, maxlen)
+    function get_fastq_seqs(::Type{A}, r1, r2, maxlen) where {A<:DNAAlphabet}
         r1s = open(FASTQ.Reader, r1) do rdr
             collect(rdr)
         end
@@ -31,9 +31,9 @@
             ucdavis_tag(rec)
         end
         keep = tags .!= zero(UInt32)
-        r1s = FASTQ.sequence.(r1s[keep])
-        r2s = FASTQ.sequence.(r2s[keep])
         tags = tags[keep]
+        r1s = FASTQ.sequence.(LongSequence{A}, r1s[keep])
+        r2s = FASTQ.sequence.(LongSequence{A}, r2s[keep])
         for seq in r1s
             if length(seq) > maxlen
                 resize!(seq, maxlen)
@@ -48,16 +48,14 @@
         return r1s[order], r2s[order]
     end
     
-    
-    
-    function check_round_trip(R1, R2, maxlen, chunksize = 1000000)
-        r1_seqs, r2_seqs = get_fastq_seqs(R1, R2, maxlen)
+    function check_round_trip(::Type{A}, R1, R2, maxlen, chunksize = 1000000) where {A<:DNAAlphabet}
+        r1_seqs, r2_seqs = get_fastq_seqs(A, R1, R2, maxlen)
         
         fqa = open(FASTQ.Reader, R1)
         fqb = open(FASTQ.Reader, R2)
         
-        ds = LinkedReads(fqa, fqb, "10xtest", Symbol("ucdavis-test"), UCDavis10x, maxlen, chunksize)
-        ds2 = open(LinkedReads, "10xtest.lrseq")
+        ds = LinkedReads{A}(fqa, fqb, "10xtest", Symbol("ucdavis-test"), UCDavis10x, maxlen, chunksize)
+        ds2 = open(LinkedReads{A}, "10xtest.lrseq")
         
         ds_seqs = collect(ds)
         ds2_seqs = collect(ds2)
@@ -71,11 +69,12 @@
         return String(take!(buf)) == msg
     end
     
-    @test check_round_trip("10x_tester_R1.fastq", "10x_tester_R2.fastq", 250, 10)
+    @test check_round_trip(DNAAlphabet{2}, "10x_tester_R1.fastq", "10x_tester_R2.fastq", 250, 10)
+    @test check_round_trip(DNAAlphabet{4}, "10x_tester_R1.fastq", "10x_tester_R2.fastq", 250, 10)
     
-    ds = open(LinkedReads, "10xtest.lrseq")
+    ds = open(LinkedReads{DNAAlphabet{4}}, "10xtest.lrseq")
     @test ReadDatastores.name(ds) == Symbol("ucdavis-test")
-    @test ReadDatastores.maxseqlen(ds) == 250
+    @test ReadDatastores.max_read_length(ds) == 250
     @test check_show(ds, "Linked Read Datastore 'ucdavis-test': 166 reads (83 pairs)")
     @test firstindex(ds) == 1
     @test lastindex(ds) == 166
@@ -84,8 +83,10 @@
     @test Base.eltype(ds) == LongSequence{DNAAlphabet{4}}
     @test_throws BoundsError ds[200]
     @test_throws BoundsError buffer(ds)[200]
+    @test_throws ErrorException buffer(ds, 1)
+    @test_throws ErrorException buffer(ds, ReadDatastores._bytes_per_read(ds) - 1)
     @test_throws BoundsError load_sequence!(ds, 200, dna"")
-    @test collect(ds) == collect(buffer(ds)) == open(LinkedReads, "10xtest.lrseq") do ds
+    @test collect(ds) == collect(buffer(ds)) == open(LinkedReads{DNAAlphabet{4}}, "10xtest.lrseq") do ds
         collect(ds)
     end
 end
