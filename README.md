@@ -1,9 +1,10 @@
 # <img src="./sticker.svg" width="30%" align="right" /> ReadDatastores
 
 [![Latest Release](https://img.shields.io/github/release/BioJulia/ReadDatastores.jl.svg)](https://github.com/BioJulia/ReadDatastores.jl/releases/latest)
-[![MIT license](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/BioJulia/ReadDatastores.jl/blob/master/LICENSE) 
+[![MIT license](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/BioJulia/ReadDatastores.jl/blob/master/LICENSE)
+[![DOI](https://zenodo.org/badge/195041644.svg)](https://zenodo.org/badge/latestdoi/195041644)
 [![Stable documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://biojulia.github.io/ReadDatastores.jl/stable)
-[![Latest documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://biojulia.github.io/ReadDatastores.jl/latest/)
+[![Latest documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://biojulia.github.io/ReadDatastores.jl/latest/)
 [![Lifecycle](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wi)
 [![Chat](https://img.shields.io/gitter/room/BioJulia/ReadDatastores.svg)](https://gitter.im/BioJulia/ReadDatastores.jl)
 
