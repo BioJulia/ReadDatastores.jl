@@ -5,7 +5,7 @@ end
 
 Base.:(==)(x::ReadPosSize, y::ReadPosSize) = x.offset == y.offset && x.sequence_size == y.sequence_size
 
-struct LongReads <: ReadDatastore{LongSequence{DNAAlphabet{4}}}
+struct LongReads{A<:DNAAlphabet} <: ReadDatastore{LongSequence{A}}
     filename::String
     name::Symbol
     default_name::Symbol
@@ -16,7 +16,7 @@ end
 index(lrds::LongReads) = lrds.read_to_file_positions
 
 "Get the length of the longest sequence in the datastore"
-function maxseqlen(lrds::LongReads)
+function max_read_length(lrds::LongReads)
     max = zero(UInt64)
     @inbounds for i in index(lrds)
         ss = i.sequence_size
@@ -27,7 +27,7 @@ function maxseqlen(lrds::LongReads)
     return max
 end
 
-const LongDS_Version = 0x0001
+const LongDS_Version = 0x0002
 
 ###
 ### LongReads Header
@@ -40,9 +40,10 @@ const LongDS_Version = 0x0001
 # | Version number                | 0x0001 | UInt16      | 2
 # | Index position in file        | N/A    | UInt64      | 8
 # | Default name of the datastore | N/A    | String      | N
+# | Number of bits used per nuc   | 2 or 4 | UInt64      | 8
 
 """
-    LongReads(rdr::FASTQ.Reader, outfile::String, name::String, min_size::Integer)
+    LongReads{A}(rdr::FASTQ.Reader, outfile::String, name::String, min_size::Integer) where {A<:DNAAlphabet}
 
 Construct a Long Read Datastore from a FASTQ file reader.
 
@@ -63,7 +64,7 @@ julia> using FASTX, ReadDatastores
 julia> longrdr = open(FASTQ.Reader, "test/human_nanopore_tester_2D.fastq")
 FASTX.FASTQ.Reader{TranscodingStreams.TranscodingStream{TranscodingStreams.Noop,IOStream}}(BioGenerics.Automa.State{TranscodingStreams.TranscodingStream{TranscodingStreams.Noop,IOStream}}(TranscodingStreams.TranscodingStream{TranscodingStreams.Noop,IOStream}(<mode=idle>), 1, 1, false), nothing)
 
-julia> ds = LongReads(longrdr, "human-nanopore-tester", "nanopore-test", 0)
+julia> ds = LongReads{DNAAlphabet{2}}(longrdr, "human-nanopore-tester", "nanopore-test", 0)
 [ Info: Building long read datastore from FASTQ file
 [ Info: Writing long reads to datastore
 [ Info: Done writing paired read sequences to datastore
@@ -74,9 +75,9 @@ Long Read Datastore 'nanopore-test': 10 reads
 
 ```
 """
-LongReads(rdr::FASTQ.Reader, outfile::String, name::Union{String,Symbol}, min_size::Integer) = LongReads(rdr, outfile, name, convert(UInt64, min_size))
+LongReads{A}(rdr::FASTQ.Reader, outfile::String, name::Union{String,Symbol}, min_size::Integer) where {A<:DNAAlphabet} = LongReads{A}(rdr, outfile, name, convert(UInt64, min_size))
 
-function LongReads(rdr::FASTQ.Reader, outfile::String, name::Union{String,Symbol}, min_size::UInt64)
+function LongReads{A}(rdr::FASTQ.Reader, outfile::String, name::Union{String,Symbol}, min_size::UInt64) where {A<:DNAAlphabet}
     discarded = 0
     
     read_to_file_position = Vector{ReadPosSize}()
@@ -86,8 +87,11 @@ function LongReads(rdr::FASTQ.Reader, outfile::String, name::Union{String,Symbol
     
     writestring(ofs, String(name))
     
+    bps = UInt64(BioSequences.bits_per_symbol(A()))
+    write(ofs, bps)
+    
     record = FASTQ.Record()
-    seq = LongSequence{DNAAlphabet{4}}(min_size)
+    seq = LongSequence{A}(min_size)
     
     @info "Building long read datastore from FASTQ file"
     
@@ -107,7 +111,7 @@ function LongReads(rdr::FASTQ.Reader, outfile::String, name::Union{String,Symbol
         write(ofs, seq.data)
     end
     
-    @info "Done writing paired read sequences to datastore"
+    @info "Done writing long read sequences to datastore"
     @info string(discarded, " reads were discarded due to a too short sequence")
     
     fpos = UInt64(position(ofs))
@@ -124,10 +128,10 @@ function LongReads(rdr::FASTQ.Reader, outfile::String, name::Union{String,Symbol
     @info string("Built long read datastore with ", length(read_to_file_position), " reads") 
     
     stream = open(outfile * ".loseq", "r+")
-    return LongReads(outfile * ".loseq", Symbol(name), Symbol(name), read_to_file_position, stream)
+    return LongReads{A}(outfile * ".loseq", Symbol(name), Symbol(name), read_to_file_position, stream)
 end
 
-function Base.open(::Type{LongReads}, filename::String, name::Union{String,Symbol,Nothing} = nothing)
+function Base.open(::Type{LongReads{A}}, filename::String, name::Union{String,Symbol,Nothing} = nothing) where {A<:DNAAlphabet}
     fd = open(filename, "r")
     magic = read(fd, UInt16)
     dstype = reinterpret(Filetype, read(fd, UInt16))
@@ -137,9 +141,11 @@ function Base.open(::Type{LongReads}, filename::String, name::Union{String,Symbo
     @assert version == LongDS_Version
     fpos = read(fd, UInt64)
     default_name = Symbol(readuntil(fd, '\0'))
+    bps = read(fd, UInt64)
+    @assert bps == UInt64(BioSequences.bits_per_symbol(A()))
     seek(fd, fpos)
     read_to_file_position = read_flat_vector(fd, ReadPosSize)
-    return LongReads(filename, isnothing(name) ? default_name : Symbol(name), default_name, read_to_file_position, fd)
+    return LongReads{A}(filename, isnothing(name) ? default_name : Symbol(name), default_name, read_to_file_position, fd)
 end
 
 ###
@@ -156,9 +162,25 @@ end
 
 @inline _inbounds_index_of_sequence(lrds::LongReads, idx::Integer) = @inbounds lrds.read_to_file_positions[idx]
 
+@inline function inbounds_load_sequence!(lrds::LongReads{A}, pos::ReadPosSize, seq::LongSequence{A}) where {A<:DNAAlphabet}
+    seek(stream(lrds), pos.offset)
+    resize!(seq, pos.sequence_size)
+    return _load_sequence_data!(lrds, seq)
+end
+
+@inline function inbounds_load_sequence!(lrds::LongReads{A}, idx::Integer, seq::LongSequence{A}) where {A<:DNAAlphabet}
+    pos_size = _inbounds_index_of_sequence(lrds, idx)
+    return inbounds_load_sequence!(lrds, pos_size, seq)
+end
+
+@inline function load_sequence!(lrds::LongReads{A}, idx::Integer, seq::LongSequence{A}) where {A<:DNAAlphabet}
+    checkbounds(lrds, idx)
+    return inbounds_load_sequence!(lrds, idx, seq)
+end
+
 @inline function Base.getindex(lrds::LongReads, idx::Integer)
     @boundscheck checkbounds(lrds, idx)
     pos_size = _inbounds_index_of_sequence(lrds, idx)
-    seq = LongDNASeq(pos_size.sequence_size)
-    return _load_sequence_from_file_pos!(lrds, pos_size, seq)
+    seq = eltype(lrds)(pos_size.sequence_size)
+    return inbounds_load_sequence!(lrds, pos_size, seq)
 end

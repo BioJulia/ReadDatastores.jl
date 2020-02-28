@@ -16,5 +16,6 @@ makedocs(
 deploydocs(
     repo = "github.com/BioJulia/ReadDatastores.jl.git",
     deps = nothing,
-    make = nothing
+    make = nothing,
+    push_preview = true
 )

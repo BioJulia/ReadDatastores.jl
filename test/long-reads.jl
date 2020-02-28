@@ -8,11 +8,11 @@
         return seqs
     end
     
-    function check_round_trip(FQ)
+    function check_round_trip(::Type{A}, FQ) where {A<:DNAAlphabet}
         seqs = get_fastq_seqs(FQ)
         fq = open(FASTQ.Reader, FQ)
-        ds = LongReads(fq, "human-nanopore", "human-nanopore", 0)
-        ds2 = open(LongReads, "human-nanopore.loseq")
+        ds = LongReads{A}(fq, "human-nanopore", "human-nanopore", 0)
+        ds2 = open(LongReads{A}, "human-nanopore.loseq")
         ds_seqs = collect(ds)
         ds2_seqs = collect(ds2)
         return ds_seqs == seqs == ds2_seqs
@@ -24,12 +24,11 @@
         return String(take!(buf)) == msg
     end
     
-    @testset "Human oxford nanopore 2D consensus reads tester" begin
-        @test check_round_trip("human_nanopore_tester_2D.fastq")
-    
-        ds = open(LongReads, "human-nanopore.loseq")
-        ds2 = open(LongReads, "human-nanopore.loseq")
-    
+    function run_tests(::Type{A}) where {A<:DNAAlphabet}
+        @test check_round_trip(A, "human_nanopore_tester_2D.fastq")
+        ds = open(LongReads{A}, "human-nanopore.loseq")
+        ds2 = open(LongReads{A}, "human-nanopore.loseq")
+        
         @test ReadDatastores.index(ds) == ReadDatastores.index(ds2)
         @test ReadDatastores.index(ds)[1] == ReadDatastores.index(ds2)[1]
         @test firstindex(ds) == firstindex(ds2) == 1
@@ -39,10 +38,10 @@
         
         @test Base.IteratorSize(ds) == Base.IteratorSize(ds2) == Base.HasLength()
         @test Base.IteratorEltype(ds) == Base.IteratorEltype(ds2) == Base.HasEltype()
-        @test Base.eltype(ds) == Base.eltype(ds2) == LongSequence{DNAAlphabet{4}}
+        @test Base.eltype(ds) == Base.eltype(ds2) == LongSequence{A}
         
-        @test collect(ds) == collect(buffer(ds))
-        @test ds[5] == buffer(ds)[5] == load_sequence!(ds, 5, dna"") == load_sequence!(buffer(ds), 5, dna"")
+        @test collect(ds) == collect(buffer(ds)) == collect(buffer(ds, 1))
+        @test ds[5] == buffer(ds)[5] == load_sequence!(ds, 5, LongSequence{A}()) == load_sequence!(buffer(ds), 5, LongSequence{A}())
         
         bds = buffer(ds)
         @test eltype(bds) == eltype(ds)
@@ -50,6 +49,10 @@
         @test eachindex(bds) == eachindex(ds)
         @test Base.IteratorSize(bds) == Base.IteratorSize(ds)
         @test Base.IteratorEltype(bds) == Base.IteratorEltype(ds)
-        
+    end
+    
+    @testset "Human oxford nanopore 2D consensus reads tester" begin
+        run_tests(DNAAlphabet{4})
+        run_tests(DNAAlphabet{2})
     end
 end

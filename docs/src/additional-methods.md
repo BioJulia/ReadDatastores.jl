@@ -9,7 +9,7 @@ They are listed here.
 ```@docs
 read_tag
 name
-maxseqlen
+max_read_length
 orientation
 stream
 ```
