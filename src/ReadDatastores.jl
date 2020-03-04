@@ -9,8 +9,7 @@ export
     LongReads,
     LinkedReads,
     UCDavis10x,
-    SequenceBuffer,
-    
+    DatastoreBuffer,
     name,
     max_read_length,
     orientation,

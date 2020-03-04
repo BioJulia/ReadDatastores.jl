@@ -1,7 +1,7 @@
 name = "ReadDatastores"
 uuid = "70a005b8-9d8a-11e9-0d98-c909fa2e52d2"
 authors = ["Ben J. Ward <benjward@protonmail.com>"]
-version = "0.2.0"
+version = "0.2.1"
 
 [deps]
 BioSequences = "7e6ae17a-c86d-528c-b3b9-7f778a29fe59"
