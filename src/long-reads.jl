@@ -27,7 +27,7 @@ function max_read_length(lrds::LongReads)
     return max
 end
 
-const LongDS_Version = 0x0002
+const LongDS_Version = 0x0003
 
 ###
 ### LongReads Header
@@ -121,7 +121,7 @@ function LongReads{A}(rdr::FASTQ.Reader, outfile::String, name::Union{String,Sym
     write_flat_vector(ofs, read_to_file_position)
     
     # Go to the top and dump the number of reads and the position of the index.
-    seek(ofs, sizeof(ReadDatastoreMAGIC) + sizeof(Filetype) + sizeof(LongDS_Version))
+    seek(ofs, sizeof(ReadDatastoreMAGIC) + sizeof(Filetype) + sizeof(LongDS_Version) + sizeof(bps))
     write(ofs, fpos)
     close(ofs)
     
