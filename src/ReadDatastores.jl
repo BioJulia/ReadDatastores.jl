@@ -152,10 +152,10 @@ function deduce_datastore_type(io::IOStream)::DataType
     if tp == PairedDS
         @assert vn === PairedDS_Version
         return PairedReads{DNAAlphabet{bpn}}
-    else if tp === LongDS
+    elseif tp === LongDS
         @assert vn === LongDS_Version
         return LongReads{DNAAlphabet{bpn}}
-    else if tp === LinkedDS
+    elseif tp === LinkedDS
         @assert vn === LinkedDS_Version
         return LinkedReads{DNAAlphabet{bpn}}
     else
