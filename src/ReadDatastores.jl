@@ -16,7 +16,9 @@ export
     load_sequence!,
     buffer,
     read_tag,
-    stream
+    stream,
+    @dsopen,
+    @reads_str
 
 using BioSequences, FASTX
 
@@ -142,37 +144,54 @@ function _load_sequence_data!(ds::ReadDatastore{T}, seq::T) where {T<:LongSequen
     return seq
 end
 
-function deduce_datastore_type(io::IOStream)::DataType
-    seekstart(io)
-    mn = read(io, UInt16)
-    @assert mn === ReadDatastoreMAGIC
-    tp = read(io, UInt16)
-    vn = read(io, UInt16)
-    bpn = read(io, UInt64)
-    if tp == PairedDS
-        @assert vn === PairedDS_Version
-        return PairedReads{DNAAlphabet{bpn}}
-    elseif tp === LongDS
-        @assert vn === LongDS_Version
-        return LongReads{DNAAlphabet{bpn}}
-    elseif tp === LinkedDS
-        @assert vn === LinkedDS_Version
-        return LinkedReads{DNAAlphabet{bpn}}
-    else
-        error("Unrecognized datastore type")
+function deduce_datastore_type(filename::String)::DataType
+    open(filename, "r") do io
+        seekstart(io)
+        mn = read(io, UInt16)
+        @assert mn === ReadDatastoreMAGIC
+        tp = reinterpret(Filetype, read(io, UInt16))
+        vn = read(io, UInt16)
+        bpn = Int64(read(io, UInt64))
+        if tp === PairedDS
+            @assert vn === PairedDS_Version
+            out = PairedReads{DNAAlphabet{bpn}}
+        elseif tp === LongDS
+            @assert vn === LongDS_Version
+            out = LongReads{DNAAlphabet{bpn}}
+        elseif tp === LinkedDS
+            @assert vn === LinkedDS_Version
+            out = LinkedReads{DNAAlphabet{bpn}}
+        else
+            error("Unrecognized datastore type")
+        end
+        return out
     end
 end
 
-deduce_datastore_type(filename::String)::DataType = deduce_datastore_type(open(filename, "r"))
-
-macro opends(filename::String)
+macro dsopen(filename::String)
     dstype = deduce_datastore_type(filename)
-    return :(open($dstype, filename))
+    return :(open($dstype, $filename))
 end
 
-macro opends(filename::String, name::Symbol)
+macro dsopen(filename::String, name)
     dstype = deduce_datastore_type(filename)
-    return :(open($dstype, filename, name))
+    return :(open($dstype, $filename, $name))
+end
+
+macro reads_str(filename::String)
+    dstype = deduce_datastore_type(filename)
+    return open(dstype, filename)
+end
+
+macro reads_str(filename::String, flag)
+    dstype = deduce_datastore_type(filename)
+    if flag === "s"
+        return open(dstype, filename)
+    elseif flag === "d"
+        return :(open($dstype, $filename))
+    else
+        error("Invalid flag option")
+    end
 end
 
 end # module
