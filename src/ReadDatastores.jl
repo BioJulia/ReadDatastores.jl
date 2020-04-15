@@ -165,4 +165,14 @@ end
 
 deduce_datastore_type(filename::String)::DataType = deduce_datastore_type(open(filename, "r"))
 
+macro opends(filename::String)
+    dstype = deduce_datastore_type(filename)
+    return :(open($dstype, filename))
+end
+
+macro opends(filename::String, name::Symbol)
+    dstype = deduce_datastore_type(filename)
+    return :(open($dstype, filename, name))
+end
+
 end # module
