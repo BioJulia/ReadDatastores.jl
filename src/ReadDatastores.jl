@@ -142,4 +142,27 @@ function _load_sequence_data!(ds::ReadDatastore{T}, seq::T) where {T<:LongSequen
     return seq
 end
 
+function deduce_datastore_type(io::IOStream)::DataType
+    seekstart(io)
+    mn = read(io, UInt16)
+    @assert mn === ReadDatastoreMAGIC
+    tp = read(io, UInt16)
+    vn = read(io, UInt16)
+    bpn = read(io, UInt64)
+    if tp == PairedDS
+        @assert vn === PairedDS_Version
+        return PairedReads{DNAAlphabet{bpn}}
+    else if tp === LongDS
+        @assert vn === LongDS_Version
+        return LongReads{DNAAlphabet{bpn}}
+    else if tp === LinkedDS
+        @assert vn === LinkedDS_Version
+        return LinkedReads{DNAAlphabet{bpn}}
+    else
+        error("Unrecognized datastore type")
+    end
+end
+
+deduce_datastore_type(filename::String)::DataType = deduce_datastore_type(open(filename, "r"))
+
 end # module

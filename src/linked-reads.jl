@@ -18,7 +18,7 @@ end
 Base.isless(a::LinkedReadData, b::LinkedReadData) = a.tag < b.tag
 LinkedReadData{A}(len) where {A<:DNAAlphabet} = LinkedReadData{A}(LongSequence{A}(len), LongSequence{A}(len), zero(UInt64), zero(UInt64), zero(LinkedTag))
 
-const LinkedDS_Version = 0x0002
+const LinkedDS_Version = 0x0003
 
 function _extract_tag_and_sequences!(current_data::LinkedReadData, fwrec::FASTQ.Record, rvrec::FASTQ.Record, max_read_len::UInt64, ::UCDavisTenX)
     fwid = FASTQ.identifier(fwrec)
@@ -161,12 +161,12 @@ function LinkedReads{A}(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, n
     
     bps = UInt64(BioSequences.bits_per_symbol(A()))
     output = open(outfile * ".lrseq", "w")
-    # Write magic no, datastore type, version number.
-    write(output, ReadDatastoreMAGIC, LinkedDS, LinkedDS_Version)
+    # Write magic no, datastore type, version number, and bits per symbol.
+    write(output, ReadDatastoreMAGIC, LinkedDS, LinkedDS_Version, bps)
     # Write the default name of the datastore.
     writestring(output, String(name))
-    # Write the read size, chunk size, and bits per symbol.
-    write(output, max_read_len, datachunksize, bps)
+    # Write the read size, chunk size.
+    write(output, max_read_len, datachunksize)
     
     read_tag_offset = position(output)
     write_flat_vector(output, read_tag)
@@ -228,11 +228,12 @@ function Base.open(::Type{LinkedReads{A}}, filename::String, name::Union{Symbol,
     @assert dstype == LinkedDS
     @assert version == LinkedDS_Version
     
+    bps = read(fd, UInt64)
+    @assert bps == UInt64(BioSequences.bits_per_symbol(A()))
+    
     default_name = Symbol(readuntil(fd, '\0'))
     max_read_len = read(fd, UInt64)
     chunksize = read(fd, UInt64)
-    bps = read(fd, UInt64)
-    @assert bps == UInt64(BioSequences.bits_per_symbol(A()))
     
     read_tags = read_flat_vector(fd, UInt32)
     
