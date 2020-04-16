@@ -66,34 +66,34 @@ To solve this problem a few convenience macros are provided for you, so you can
 load datastores without specifying the datastore type, yet still avoid type
 uncertainty in your generated code.
 
-The macro `@dsopen` accepts a filepath, and optionally a datastore name.
+The macro `@openreads` accepts a filepath, and optionally a datastore name.
 The macro is evaluated and expanded before you julia code is compiled.
 During that time, the header of the datastore file is peeked at, and the correct
 ReadDatastore subtype is deduced, and a correctly typed `open` statement is generated.
 
 For example if the file `myreads.prseq` was a 2-bit encoded paired read datastore,
-and you had the following statement in your script: `ds = @dsopen "myreads.prseq"`
+and you had the following statement in your script: `ds = @openreads "myreads.prseq"`
 
 The statement would be expanded to: `ds = open(PairedReads{DNAAlphabet{2}}, "myreads.prseq")`
 
 You can also open a datastore using a string literal e.g. `reads"myreads.prseq"`.
-When you do this, type type of the datastore is detected as with `@dsopen`,
+When you do this, type type of the datastore is detected as with `@openreads`,
 however, rather than returning the expression
-`ds = open(PairedReads{DNAAlphabet{2}}, "myreads.prseq")`, as `@dsopen` does,
+`ds = open(PairedReads{DNAAlphabet{2}}, "myreads.prseq")`, as `@openreads` does,
 the `open` is executed and the macro returns the value of `ds`.
 
 !!! note
-    In order for `@dsopen` to work properly in any script the datastore file
-    must exist prior to running the script. This is unavoidable because
-    macros are evaluated and expanded first before the resulting expanded code
-    is compiled and run.
+    In order for `@openreads` or the literals to work properly in any script,
+    the datastore file must exist prior to running the script.
+    This is unavoidable because macros are evaluated and expanded first before
+    the resulting expanded code is compiled and run.
     
-    So creating a datastore file and loading it again using `@dsopen` within the
-    same script will not work, and `@dsopen` will try to peek at the file and
+    So creating a datastore file and loading it again using `@openreads` within the
+    same script will not work, and `@openreads` will try to peek at the file and
     deduce its contents before the script can generate the datastore file.
     You will get an error telling you the file can't be found / does not exist.
     
     In an interactive setting, in which statements are entered, compiled and run
     by the REPL one at a time, this should rarely be a problem.
     
-**In summary: If in doubt about the datastore type of a file, simply use `@dsopen`**
+**In summary: If in doubt about the datastore type of a file, simply use `@openreads`**

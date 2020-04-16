@@ -17,7 +17,7 @@ export
     buffer,
     read_tag,
     stream,
-    @dsopen,
+    @openreads,
     @reads_str
 
 using BioSequences, FASTX
@@ -169,7 +169,7 @@ function deduce_datastore_type(filename::String)::DataType
 end
 
 """
-    @dsopen filename::String
+    @openreads filename::String
 
 A convenience macro for opening read datastores.
 
@@ -186,13 +186,13 @@ contained in the file. It then returns a complete and correctly formed `open`
 command for the datastore. This allows the user to forget about the specific
 datastore type whilst still maintaining type certainty.
 """
-macro dsopen(filename::String)
+macro openreads(filename::String)
     dstype = deduce_datastore_type(filename)
     return :(open($dstype, $filename))
 end
 
 """
-@dsopen filename::String name
+@openreads filename::String name
 
 A convenience macro for opening read datastores and assigning it a name other
 than the datastore's default name.
@@ -210,7 +210,7 @@ contained in the file. It then returns a complete and correctly formed `open`
 command for the datastore. This allows the user to forget about the specific
 datastore type whilst still maintaining type certainty.
 """
-macro dsopen(filename::String, name)
+macro openreads(filename::String, name)
     dstype = deduce_datastore_type(filename)
     return :(open($dstype, $filename, $name))
 end
