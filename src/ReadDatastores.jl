@@ -210,9 +210,32 @@ contained in the file. It then returns a complete and correctly formed `open`
 command for the datastore. This allows the user to forget about the specific
 datastore type whilst still maintaining type certainty.
 """
-macro openreads(filename::String, name)
+macro openreads(filename::String, name::Symbol)
     dstype = deduce_datastore_type(filename)
-    return :(open($dstype, $filename, $name))
+    return :(open($dstype, $filename, $(QuoteNode(name))))
+end
+
+macro openreads(filename::String, binding::Symbol, expression::Expr)
+    dstype = deduce_datastore_type(filename)
+    quote
+        open($dstype, $filename) do $(esc(binding))
+            $(esc(expression))
+        end
+    end
+end
+
+macro openreads(filename::String, name::Symbol, binding::Symbol, expression::Expr)
+    dstype = deduce_datastore_type(filename)
+    quote
+        open($dstype, $filename, $(QuoteNode(name))) do $(esc(binding))
+            $(esc(expression))
+        end
+    end
+end
+
+macro openreads(filename::String, name::Symbol, fn::Symbol)
+    dstype = deduce_datastore_type(filename)
+    return :(open($fn, $dstype, $filename, $(QuoteNode(name))))
 end
 
 macro reads_str(filename::String)
