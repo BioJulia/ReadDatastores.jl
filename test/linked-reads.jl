@@ -56,7 +56,7 @@
         
         ds = LinkedReads{A}(fqa, fqb, "10xtest", Symbol("ucdavis-test"), UCDavis10x, maxlen, chunksize)
         ds2 = open(LinkedReads{A}, "10xtest.lrseq")
-        
+        @test deduce_datastore_type("10xtest.lrseq") == LinkedReads{A}
         ds_seqs = collect(ds)
         ds2_seqs = collect(ds2)
         
