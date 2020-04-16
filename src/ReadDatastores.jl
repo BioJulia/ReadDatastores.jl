@@ -16,7 +16,9 @@ export
     load_sequence!,
     buffer,
     read_tag,
-    stream
+    stream,
+    @openreads,
+    @reads_str
 
 using BioSequences, FASTX
 
@@ -140,6 +142,93 @@ function _load_sequence_data!(ds::ReadDatastore{T}, seq::T) where {T<:LongSequen
     seqdata = BioSequences.encoded_data(seq)
     GC.@preserve seqdata unsafe_read(stream(ds), pointer(seqdata), sizeof(seqdata))
     return seq
+end
+
+function deduce_datastore_type(filename::String)::DataType
+    open(filename, "r") do io
+        seekstart(io)
+        mn = read(io, UInt16)
+        @assert mn === ReadDatastoreMAGIC
+        tp = reinterpret(Filetype, read(io, UInt16))
+        vn = read(io, UInt16)
+        bpn = Int64(read(io, UInt64))
+        if tp === PairedDS
+            @assert vn === PairedDS_Version
+            out = PairedReads{DNAAlphabet{bpn}}
+        elseif tp === LongDS
+            @assert vn === LongDS_Version
+            out = LongReads{DNAAlphabet{bpn}}
+        elseif tp === LinkedDS
+            @assert vn === LinkedDS_Version
+            out = LinkedReads{DNAAlphabet{bpn}}
+        else
+            error("Unrecognized datastore type")
+        end
+        return out
+    end
+end
+
+"""
+    @openreads filename::String
+
+A convenience macro for opening read datastores.
+
+The open method for ReadDatastores requires the specific type of the ReadDatastore
+as the first argument.
+
+This can be cumbersome as the specific type of the datastore may be forgotten or
+not known in the first place if the user recieved the datastore from a colleague.
+
+This macro allows you to open a datastore using only the filename.
+
+The macro opens the file, peeks at the header and deduces the type of datastore
+contained in the file. It then returns a complete and correctly formed `open`
+command for the datastore. This allows the user to forget about the specific
+datastore type whilst still maintaining type certainty.
+"""
+macro openreads(filename::String)
+    dstype = deduce_datastore_type(filename)
+    return :(open($dstype, $filename))
+end
+
+"""
+@openreads filename::String name
+
+A convenience macro for opening read datastores and assigning it a name other
+than the datastore's default name.
+
+The open method for ReadDatastores requires the specific type of the ReadDatastore
+as the first argument.
+
+This can be cumbersome as the specific type of the datastore may be forgotten or
+not known in the first place if the user recieved the datastore from a colleague.
+
+This macro allows you to open a datastore using only the filename.
+
+The macro opens the file, peeks at the header and deduces the type of datastore
+contained in the file. It then returns a complete and correctly formed `open`
+command for the datastore. This allows the user to forget about the specific
+datastore type whilst still maintaining type certainty.
+"""
+macro openreads(filename::String, name)
+    dstype = deduce_datastore_type(filename)
+    return :(open($dstype, $filename, $name))
+end
+
+macro reads_str(filename::String)
+    dstype = deduce_datastore_type(filename)
+    return open(dstype, filename)
+end
+
+macro reads_str(filename::String, flag)
+    dstype = deduce_datastore_type(filename)
+    if flag === "s"
+        return open(dstype, filename)
+    elseif flag === "d"
+        return :(open($dstype, $filename))
+    else
+        error("Invalid flag option")
+    end
 end
 
 end # module

@@ -27,7 +27,7 @@ function max_read_length(lrds::LongReads)
     return max
 end
 
-const LongDS_Version = 0x0002
+const LongDS_Version = 0x0003
 
 ###
 ### LongReads Header
@@ -38,9 +38,10 @@ const LongDS_Version = 0x0002
 # | Magic number                  | 0x05D5 | UInt16      | 2
 # | Datastore type                | 0x0002 | UInt16      | 2
 # | Version number                | 0x0001 | UInt16      | 2
+# | Number of bits used per nuc   | 2 or 4 | UInt64      | 8
 # | Index position in file        | N/A    | UInt64      | 8
 # | Default name of the datastore | N/A    | String      | N
-# | Number of bits used per nuc   | 2 or 4 | UInt64      | 8
+
 
 """
     LongReads{A}(rdr::FASTQ.Reader, outfile::String, name::String, min_size::Integer) where {A<:DNAAlphabet}
@@ -83,12 +84,11 @@ function LongReads{A}(rdr::FASTQ.Reader, outfile::String, name::Union{String,Sym
     read_to_file_position = Vector{ReadPosSize}()
     ofs = open(outfile * ".loseq", "w")
     
-    write(ofs, ReadDatastoreMAGIC, LongDS, LongDS_Version, zero(UInt64))
+    bps = UInt64(BioSequences.bits_per_symbol(A()))
+    
+    write(ofs, ReadDatastoreMAGIC, LongDS, LongDS_Version, bps, zero(UInt64))
     
     writestring(ofs, String(name))
-    
-    bps = UInt64(BioSequences.bits_per_symbol(A()))
-    write(ofs, bps)
     
     record = FASTQ.Record()
     seq = LongSequence{A}(min_size)
@@ -121,7 +121,7 @@ function LongReads{A}(rdr::FASTQ.Reader, outfile::String, name::Union{String,Sym
     write_flat_vector(ofs, read_to_file_position)
     
     # Go to the top and dump the number of reads and the position of the index.
-    seek(ofs, sizeof(ReadDatastoreMAGIC) + sizeof(Filetype) + sizeof(LongDS_Version))
+    seek(ofs, sizeof(ReadDatastoreMAGIC) + sizeof(Filetype) + sizeof(LongDS_Version) + sizeof(bps))
     write(ofs, fpos)
     close(ofs)
     
@@ -139,10 +139,10 @@ function Base.open(::Type{LongReads{A}}, filename::String, name::Union{String,Sy
     @assert magic == ReadDatastoreMAGIC
     @assert dstype == LongDS
     @assert version == LongDS_Version
-    fpos = read(fd, UInt64)
-    default_name = Symbol(readuntil(fd, '\0'))
     bps = read(fd, UInt64)
     @assert bps == UInt64(BioSequences.bits_per_symbol(A()))
+    fpos = read(fd, UInt64)
+    default_name = Symbol(readuntil(fd, '\0'))
     seek(fd, fpos)
     read_to_file_position = read_flat_vector(fd, ReadPosSize)
     return LongReads{A}(filename, isnothing(name) ? default_name : Symbol(name), default_name, read_to_file_position, fd)

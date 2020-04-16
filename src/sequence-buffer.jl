@@ -37,7 +37,7 @@ end
 @inline Base.eachindex(sb::DatastoreBuffer) = eachindex(datastore(sb))
 @inline Base.IteratorSize(sb::DatastoreBuffer) = Base.IteratorSize(datastore(sb))
 @inline Base.IteratorEltype(sb::DatastoreBuffer) = Base.IteratorEltype(datastore(sb))
-@inline Base.checkbounds(sb::DatastoreBuffer, i::Integer) = Base.checkbounds(datastore(sb), i)
+@inline Base.checkbounds(sb::DatastoreBuffer, i) = Base.checkbounds(datastore(sb), i)
 
 @inline function _load_sequence_data!(seq::LongSequence{A}, sb::DatastoreBuffer, offset::Integer) where {A<:DNAAlphabet}
     bufdata = buffer_array(sb)

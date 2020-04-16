@@ -24,18 +24,18 @@ end
 
 # | Field             | Value  | Type        |
 # |:-----------------:|:------:|:-----------:|
-# | Magic number      | 0x05D5 | UInt16      | 2
-# | Datastore type    | 0x0001 | UInt16      | 2
-# | Version number    | 0x0001 | UInt16      | 2
+# | Magic number      | 0x05D5 | UInt16      | 2 0
+# | Datastore type    | 0x0001 | UInt16      | 2 2
+# | Version number    | 0x0001 | UInt16      | 2 4
+# | Bits Per Nuc      | N/A    | UInt64      | 8 6
 # | Default name      | N/A    | String      | 7
 # | Maximum read size | N/A    | UInt64      | 8
 # | Chunk size        | N/A    | UInt64      | 8
 # | Fragment size     | N/A    | UInt64      | 8
 # | Orientation       | N/A    | Orientation | 8
-# | Bits Per Nuc      | N/A    | UInt64      | 8
 # | Number of Reads   | N/A    | UInt64      | 8
 
-const PairedDS_Version = 0x0002
+const PairedDS_Version = 0x0003
 
 """
     PairedReads{A}(rdrx::FASTQ.Reader, rdry::FASTQ.Reader, outfile::String, name::Union{String,Symbol}, minsize::Integer, maxsize::Integer, fragsize::Integer, orientation::PairedReadOrientation) where {A<:DNAAlphabet}
@@ -114,11 +114,11 @@ function PairedReads{A}(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
     fd = open(outfile * ".prseq", "w")
     
     # Write magic no, datastore type, version number.
-    sizepos = write(fd, ReadDatastoreMAGIC, PairedDS, PairedDS_Version) +
+    sizepos = write(fd, ReadDatastoreMAGIC, PairedDS, PairedDS_Version, bps) +
     # Write the default name of the datastore.
     writestring(fd, String(name)) +
     # Write the read size, and chunk size.
-    write(fd, maxsize, chunksize, fragsize, orientation, bps)
+    write(fd, maxsize, chunksize, fragsize, orientation)
     # Write space for size variable (or number of read pairs).
     readpos = write(fd, UInt64(0)) + sizepos
     
@@ -198,14 +198,15 @@ function Base.open(::Type{PairedReads{A}}, filename::String, name::Union{String,
     @assert dstype == PairedDS
     @assert version == PairedDS_Version
     
+    bps = read(fd, UInt64)
+    @assert bps == BioSequences.bits_per_symbol(A())
+    
     default_name = Symbol(readuntil(fd, '\0'))
     
     max_read_len = read(fd, UInt64)
     chunksize = read(fd, UInt64)
     fragsize = read(fd, UInt64)
     orientation = reinterpret(PairedReadOrientation, read(fd, UInt64))
-    bps = read(fd, UInt64)
-    @assert bps == BioSequences.bits_per_symbol(A())
     nreads = read(fd, UInt64)
     readpos_offset = position(fd)
     
