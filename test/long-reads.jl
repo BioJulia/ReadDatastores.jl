@@ -28,7 +28,7 @@
         @test check_round_trip(A, "human_nanopore_tester_2D.fastq")
         ds = open(LongReads{A}, "human-nanopore.loseq")
         ds2 = open(LongReads{A}, "human-nanopore.loseq")
-        @test deduce_datastore_type("human-nanopore.loseq") == LongReads{A}
+        @test ReadDatastores.deduce_datastore_type("human-nanopore.loseq") == LongReads{A}
         @test ReadDatastores.index(ds) == ReadDatastores.index(ds2)
         @test ReadDatastores.index(ds)[1] == ReadDatastores.index(ds2)[1]
         @test firstindex(ds) == firstindex(ds2) == 1

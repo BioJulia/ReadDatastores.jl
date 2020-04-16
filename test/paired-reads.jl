@@ -36,7 +36,7 @@
     function run_checks(::Type{A}) where {A<:DNAAlphabet}
         @test check_round_trip(A, "ecoli_tester_R1.fastq", "ecoli_tester_R2.fastq")
         ds = open(PairedReads{A}, "ecoli-pe.prseq")
-        @test deduce_datastore_type("ecoli-pe.prseq") == PairedReads{A}
+        @test ReadDatastores.deduce_datastore_type("ecoli-pe.prseq") == PairedReads{A}
         @test ReadDatastores.name(ds) == Symbol("ecoli-pe")
         @test ReadDatastores.max_read_length(ds) == 300
         @test ReadDatastores.orientation(ds) == FwRv
