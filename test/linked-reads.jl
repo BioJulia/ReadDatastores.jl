@@ -89,4 +89,7 @@
     @test collect(ds) == collect(buffer(ds)) == open(LinkedReads{DNAAlphabet{4}}, "10xtest.lrseq") do ds
         collect(ds)
     end
+    
+    @test_throws ReadDatastores.DatastoreVersionError{LinkedReads{DNAAlphabet{2}}} open(LinkedReads{DNAAlphabet{2}}, "10xtest-old.lrseq")
+    @test_throws ReadDatastores.DatastoreEncodingError{LinkedReads{DNAAlphabet{4}}} open(LinkedReads{DNAAlphabet{4}}, "10xtest.lrseq")
 end
