@@ -29,6 +29,9 @@ end
 
 const LongDS_Version = 0x0003
 
+__ds_type_code(::Type{<:LongReads})   = LongDS
+__ds_version_code(::Type{<:LongReads}) = LongDS_Version
+
 ###
 ### LongReads Header
 ###
@@ -133,14 +136,9 @@ end
 
 function Base.open(::Type{LongReads{A}}, filename::String, name::Union{String,Symbol,Nothing} = nothing) where {A<:DNAAlphabet}
     fd = open(filename, "r")
-    magic = read(fd, UInt16)
-    dstype = reinterpret(Filetype, read(fd, UInt16))
-    version = read(fd, UInt16)
-    @assert magic == ReadDatastoreMAGIC
-    @assert dstype == LongDS
-    @assert version == LongDS_Version
-    bps = read(fd, UInt64)
-    @assert bps == UInt64(BioSequences.bits_per_symbol(A()))
+    
+    __validate_datastore_header(fd, LongReads{A})
+    
     fpos = read(fd, UInt64)
     default_name = Symbol(readuntil(fd, '\0'))
     seek(fd, fpos)

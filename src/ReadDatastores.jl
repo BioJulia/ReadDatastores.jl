@@ -56,11 +56,89 @@ end
     unsafe_read(fd, pointer(v), n * sizeof(T))
     return v
 end
-    
+
 ###
 ### Abstract ReadDatastore type
 ###
 abstract type ReadDatastore{S<:LongSequence} end
+
+###
+### ReadDatastore custom exceptions
+###
+struct MissingMagicError <: Exception
+    filename::String
+end
+
+function Base.showerror(io::IO, e::MissingMagicError)
+    print(io, "MissingMagicError: the file ")
+    print(io, e.filename)
+    print(io, " does not appear to be a valid read datastore file")
+    print(io, ", it does not begin with the expected magic bytes.") 
+end
+
+struct DatastoreTypeError{D<:ReadDatastore} <: Exception
+    filename::String
+    dstype::Filetype
+end
+
+function Base.showerror(io::IO, e::DatastoreTypeError{D}) where {D}
+    print(io, "DatastoreTypeError: ")
+    print(io, e.filename)
+    print(io, " contains a ")
+    if e.dstype === PairedDS
+        print(io, "paired read datastore")
+    elseif e.dstype === LongDS
+        print(io, "long read datastore")
+    elseif e.dstype === LinkedDS
+        print(io, "linked read datastore")
+    else
+        print(io, "unknown datastore type")
+    end
+    print(io, " and cannot be opened as a ")
+    print(io, D)
+end
+
+struct DatastoreVersionError{D<:ReadDatastore} <: Exception
+    version::Int
+end
+
+struct DatastoreEncodingError{D<:ReadDatastore} <: Exception
+    filename::String
+    bpe::Int
+end
+
+function Base.showerror(io::IO, e::DatastoreEncodingError{D}) where {D}
+    print(io, "DatastoreEncodingError: ")
+    print(io, e.filename)
+    print(io, " encodes reads using ")
+    print(io, e.bpe)
+    print(io, " bits per element and cannot be opened as a ")
+    print(io, D)
+end
+
+function __validate_datastore_header(io::IOStream, dstype::Type{D}) where {D<:ReadDatastore}
+    magic = read(io, UInt16)
+    dstype = reinterpret(Filetype, read(io, UInt16))
+    version = read(io, UInt16)
+    
+    if magic !== ReadDatastoreMAGIC
+        throw(MissingMagicError(io.name))
+    end
+
+    if dstype !== __ds_type_code(D)
+        throw(DatastoreTypeError{D}(io.name, dstype))
+    end
+
+    if version !== __ds_version_code(D)
+        throw(DatastoreVersionError{D}(version))
+    end
+
+    bps = read(io, UInt64)
+
+    if bps != BioSequences.bits_per_symbol(Alphabet(eltype(D)))
+        throw(DatastoreEncodingError{D}(io.name, bps))
+    end
+end
 
 ###
 ### Concrete ReadDatastore type definitions
@@ -70,6 +148,30 @@ include("paired-reads.jl")
 include("long-reads.jl")
 include("linked-reads.jl")
 include("sequence-buffer.jl")
+
+function Base.showerror(io::IO, e::DatastoreVersionError{<:PairedReads})
+    print(io, "DatastoreVersionError: ")
+    print(io, "file format version of paired read datastore file (v")
+    print(io, Int(e.version))
+    print(io, ") is deprecated: this version of ReadDatastores.jl supports v")
+    print(io, Int(PairedDS_Version))
+end
+
+function Base.showerror(io::IO, e::DatastoreVersionError{<:LongReads})
+    print(io, "DatastoreVersionError: ")
+    print(io, "file format version of long read datastore file (v")
+    print(io, Int(e.version))
+    print(io, ") is deprecated: this version of ReadDatastores.jl supports v")
+    print(io, Int(LongDS_Version))
+end
+
+function Base.showerror(io::IO, e::DatastoreVersionError{<:LinkedReads})
+    print(io, "DatastoreVersionError: ")
+    print(io, "file format version of linked read datastore file (v")
+    print(io, Int(e.version))
+    print(io, ") is deprecated: this version of ReadDatastores.jl supports v")
+    print(io, Int(LinkdDS_Version))
+end
 
 ###
 ### ReadDatastore generics
@@ -91,7 +193,7 @@ include("sequence-buffer.jl")
 @inline Base.eachindex(ds::ReadDatastore) = Base.OneTo(lastindex(ds))
 @inline Base.IteratorSize(ds::ReadDatastore) = Base.HasLength()
 @inline Base.IteratorEltype(ds::ReadDatastore) = Base.HasEltype()
-@inline Base.eltype(ds::ReadDatastore{T}) where {T} = T
+@inline Base.eltype(::Type{<:ReadDatastore{T}}) where {T} = T
 @inline Base.close(ds::ReadDatastore) = close(stream(ds))
 
 @inline function Base.checkbounds(ds::ReadDatastore, i::Integer)
@@ -153,7 +255,10 @@ function deduce_datastore_type(filename::String)::DataType
         vn = read(io, UInt16)
         bpn = Int64(read(io, UInt64))
         if tp === PairedDS
-            @assert vn === PairedDS_Version
+            #@assert vn === PairedDS_Version
+            if vn !== PairedDS_Version
+                throw(DatastoreVersionError{PairedReads{DNAAlphabet{bpn}}}(vn))
+            end
             out = PairedReads{DNAAlphabet{bpn}}
         elseif tp === LongDS
             @assert vn === LongDS_Version

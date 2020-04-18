@@ -55,6 +55,9 @@ struct LinkedReads{A<:DNAAlphabet} <: ShortReads{A}
     stream::IO
 end
 
+__ds_type_code(::Type{<:LinkedReads}) = LinkedDS
+__ds_version_code(::Type{<:LinkedReads}) = LinkedsDS_Version
+
 """
     LinkedReads{A}(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name::String, format::LinkedReadsFormat, max_read_len::Integer, chunksize::Int = 1000000) where {A<:DNAAlphabet}
 
@@ -220,16 +223,8 @@ end
 
 function Base.open(::Type{LinkedReads{A}}, filename::String, name::Union{Symbol,String,Nothing} = nothing) where {A<:DNAAlphabet}
     fd = open(filename, "r")
-    magic = read(fd, UInt16)
-    dstype = reinterpret(Filetype, read(fd, UInt16))
-    version = read(fd, UInt16)
     
-    @assert magic == ReadDatastoreMAGIC
-    @assert dstype == LinkedDS
-    @assert version == LinkedDS_Version
-    
-    bps = read(fd, UInt64)
-    @assert bps == UInt64(BioSequences.bits_per_symbol(A()))
+    __validate_datastore_header(fd, LinkedReads{A})
     
     default_name = Symbol(readuntil(fd, '\0'))
     max_read_len = read(fd, UInt64)
