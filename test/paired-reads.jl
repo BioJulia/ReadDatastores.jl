@@ -64,4 +64,5 @@
     run_checks(DNAAlphabet{2})
     
     @test_throws ReadDatastores.DatastoreVersionError{PairedReads{DNAAlphabet{2}}} open(PairedReads{DNAAlphabet{2}}, "ecoli-paired-old.prseq")
+    @test_throws ReadDatastores.DatastoreEncodingError{PairedReads{DNAAlphabet{2}}} open(PairedReads{DNAAlphabet{4}}, "ecoli-paired-old.prseq")
 end
