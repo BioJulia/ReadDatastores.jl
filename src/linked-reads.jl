@@ -56,7 +56,7 @@ struct LinkedReads{A<:DNAAlphabet} <: ShortReads{A}
 end
 
 __ds_type_code(::Type{<:LinkedReads}) = LinkedDS
-__ds_version_code(::Type{<:LinkedReads}) = LinkedsDS_Version
+__ds_version_code(::Type{<:LinkedReads}) = LinkedDS_Version
 
 """
     LinkedReads{A}(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, name::String, format::LinkedReadsFormat, max_read_len::Integer, chunksize::Int = 1000000) where {A<:DNAAlphabet}
