@@ -13,7 +13,7 @@ include("linked-reads.jl")
     @test String(take!(buf)) == "MissingMagicError: the file myreads.prseq does not appear to be a valid read datastore file, it does not begin with the expected magic bytes."
     
     Base.showerror(buf, ReadDatastores.DatastoreTypeError{PairedReads{DNAAlphabet{2}}}("myreads.prseq", ReadDatastores.LongDS))
-    @test String(take!(buf)) == "DatastoreTypeError: myreads.prseq contains a long read datastore and cannot be opened as a ReadDatastores.PairedReads{DNAAlphabet{2}}"
+    @test String(take!(buf)) == "DatastoreTypeError: myreads.prseq contains a long read datastore and cannot be opened as a ReadDatastores.PairedReads{BioSequences.DNAAlphabet{2}}"
 end
 
 end # module
