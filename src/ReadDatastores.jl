@@ -170,7 +170,7 @@ function Base.showerror(io::IO, e::DatastoreVersionError{<:LinkedReads})
     print(io, "file format version of linked read datastore file (v")
     print(io, Int(e.version))
     print(io, ") is deprecated: this version of ReadDatastores.jl supports v")
-    print(io, Int(LinkdDS_Version))
+    print(io, Int(LinkedDS_Version))
 end
 
 ###
