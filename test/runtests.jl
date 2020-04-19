@@ -23,6 +23,9 @@ include("linked-reads.jl")
     
     Base.showerror(buf, ReadDatastores.DatastoreVersionError{LinkedReads{DNAAlphabet{2}}}(UInt16(2)))
     @test String(take!(buf)) == "DatastoreVersionError: file format version of linked read datastore file (v2) is deprecated: this version of ReadDatastores.jl supports v$(Int(ReadDatastores.LinkedDS_Version))"
+    
+    Base.showerror(buf, ReadDatastores.DatastoreEncodingError{PairedReads{DNAAlphabet{2}}}("myreads.prseq", 4))
+    @test String(take!(buf)) == "DatastoreEncodingError: myreads.prseq encodes reads using 4 bits per element and cannot be opened as a ReadDatastores.PairedReads{BioSequences.DNAAlphabet{2}}"
 end
 
 end # module
