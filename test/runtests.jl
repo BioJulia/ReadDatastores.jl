@@ -15,13 +15,13 @@ include("linked-reads.jl")
     Base.showerror(buf, ReadDatastores.DatastoreTypeError{PairedReads{DNAAlphabet{2}}}("myreads.prseq", ReadDatastores.LongDS))
     @test String(take!(buf)) == "DatastoreTypeError: myreads.prseq contains a long read datastore and cannot be opened as a ReadDatastores.PairedReads{BioSequences.DNAAlphabet{2}}"
     
-    Base.showerror(buf, ReadDatastores.DatastoreVersionError{PairedReads{DNAAlphabet{2}}}("myreads.prseq", UInt16(2)))
+    Base.showerror(buf, ReadDatastores.DatastoreVersionError{PairedReads{DNAAlphabet{2}}}(UInt16(2)))
     @test String(take!(buf)) == "DatastoreVersionError: file format version of paired read datastore file (v2) is deprecated: this version of ReadDatastores.jl supports v$(Int(ReadDatastores.PairedDS_Version))"
     
-    Base.showerror(buf, ReadDatastores.DatastoreVersionError{LongReads{DNAAlphabet{2}}}("myreads.loseq", UInt16(2)))
+    Base.showerror(buf, ReadDatastores.DatastoreVersionError{LongReads{DNAAlphabet{2}}}(UInt16(2)))
     @test String(take!(buf)) == "DatastoreVersionError: file format version of long read datastore file (v2) is deprecated: this version of ReadDatastores.jl supports v$(Int(ReadDatastores.LongDS_Version))"
     
-    Base.showerror(buf, ReadDatastores.DatastoreVersionError{LinkedReads{DNAAlphabet{2}}}("myreads.lrseq", UInt16(2)))
+    Base.showerror(buf, ReadDatastores.DatastoreVersionError{LinkedReads{DNAAlphabet{2}}}(UInt16(2)))
     @test String(take!(buf)) == "DatastoreVersionError: file format version of linked read datastore file (v2) is deprecated: this version of ReadDatastores.jl supports v$(Int(ReadDatastores.LinkedDS_Version))"
 end
 
