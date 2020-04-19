@@ -37,6 +37,9 @@ end
 
 const PairedDS_Version = 0x0003
 
+__ds_type_code(::Type{<:PairedReads}) = PairedDS
+__ds_version_code(::Type{<:PairedReads}) = PairedDS_Version
+
 """
     PairedReads{A}(rdrx::FASTQ.Reader, rdry::FASTQ.Reader, outfile::String, name::Union{String,Symbol}, minsize::Integer, maxsize::Integer, fragsize::Integer, orientation::PairedReadOrientation) where {A<:DNAAlphabet}
 
@@ -190,16 +193,8 @@ end
 
 function Base.open(::Type{PairedReads{A}}, filename::String, name::Union{String,Symbol,Nothing} = nothing) where {A<:DNAAlphabet}
     fd = open(filename, "r")
-    magic = read(fd, UInt16)
-    dstype = reinterpret(Filetype, read(fd, UInt16))
-    version = read(fd, UInt16)
     
-    @assert magic == ReadDatastoreMAGIC
-    @assert dstype == PairedDS
-    @assert version == PairedDS_Version
-    
-    bps = read(fd, UInt64)
-    @assert bps == BioSequences.bits_per_symbol(A())
+    __validate_datastore_header(fd, PairedReads{A})
     
     default_name = Symbol(readuntil(fd, '\0'))
     

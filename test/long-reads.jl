@@ -54,5 +54,8 @@
     @testset "Human oxford nanopore 2D consensus reads tester" begin
         run_tests(DNAAlphabet{4})
         run_tests(DNAAlphabet{2})
+        
+        @test_throws ReadDatastores.DatastoreVersionError{LongReads{DNAAlphabet{2}}} open(LongReads{DNAAlphabet{2}}, "human-nanopore-old.loseq")
+        @test_throws ReadDatastores.DatastoreEncodingError{LongReads{DNAAlphabet{4}}} open(LongReads{DNAAlphabet{4}}, "human-nanopore.loseq")
     end
 end

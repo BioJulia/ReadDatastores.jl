@@ -51,6 +51,9 @@
         @test_throws ErrorException buffer(ds, 1)
         @test_throws ErrorException buffer(ds, ReadDatastores._bytes_per_read(ds) - 1)
         @test_throws BoundsError load_sequence!(ds, 100, LongSequence{A}())
+        
+        
+        
         @test collect(ds) == collect(buffer(ds)) == open(PairedReads{A}, "ecoli-pe.prseq") do ds
             collect(ds)
         end
@@ -59,4 +62,7 @@
     
     run_checks(DNAAlphabet{4})
     run_checks(DNAAlphabet{2})
+    
+    @test_throws ReadDatastores.DatastoreVersionError{PairedReads{DNAAlphabet{2}}} open(PairedReads{DNAAlphabet{2}}, "ecoli-paired-old.prseq")
+    @test_throws ReadDatastores.DatastoreEncodingError{PairedReads{DNAAlphabet{4}}} open(PairedReads{DNAAlphabet{4}}, "ecoli-pe.prseq")
 end
