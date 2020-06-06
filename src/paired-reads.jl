@@ -178,7 +178,7 @@ function PairedReads{A}(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
     
     seek(fd, sizepos)
     write(fd, nreads)
-    
+    flush(fd)
     close(fd)
     
     @info "Done writing paired read sequences to datastore"
