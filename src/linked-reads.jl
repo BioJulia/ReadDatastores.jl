@@ -232,7 +232,7 @@ function Base.open(::Type{LinkedReads{A}}, filename::String, name::Union{Symbol,
     
     read_tags = read_flat_vector(fd, UInt32)
     
-    return LinkedReads{A}(filename, isnothing(name) ? default_name : Symbol(name), default_name, max_read_len, chunksize, position(fd), read_tags, fd)
+    return LinkedReads{A}(filename, name !== nothing ? default_name : Symbol(name), default_name, max_read_len, chunksize, position(fd), read_tags, fd)
 end
 
 @inline _read_data_begin(prds::LinkedReads) = prds.readpos_offset
