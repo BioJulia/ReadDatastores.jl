@@ -143,7 +143,7 @@ function Base.open(::Type{LongReads{A}}, filename::String, name::Union{String,Sy
     default_name = Symbol(readuntil(fd, '\0'))
     seek(fd, fpos)
     read_to_file_position = read_flat_vector(fd, ReadPosSize)
-    return LongReads{A}(filename, name !== nothing ? default_name : Symbol(name), default_name, read_to_file_position, fd)
+    return LongReads{A}(filename, name === nothing ? default_name : Symbol(name), default_name, read_to_file_position, fd)
 end
 
 ###
