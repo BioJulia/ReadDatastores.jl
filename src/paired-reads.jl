@@ -133,10 +133,18 @@ function PairedReads{A}(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
     
     while !eof(rdrx) && !eof(rdry)
         # Read in the two records.
-        @info string("Reading Pair: ", p)
-        read!(rdrx, lread)
-        read!(rdry, rread)
-        p += 1
+        #@info string("Reading Pair: ", p)
+        try
+            read!(rdrx, lread)
+            read!(rdry, rread)
+            @info string("Read pair: ", p)
+            p += 1
+        catch ex
+            if isa(ex, EOFError)
+                continue
+            end
+            rethrow()
+        end
         
         llen = UInt64(FASTQ.seqlen(lread))
         rlen = UInt64(FASTQ.seqlen(rread))
