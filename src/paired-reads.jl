@@ -126,14 +126,17 @@ function PairedReads{A}(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
     readpos = write(fd, UInt64(0)) + sizepos
     
     pairs = discarded = truncated = 0
+    p = 1
     
     @info "Building paired read datastore from FASTQ files"
     @info "Writing paired reads to datastore"
     
     while !eof(rdrx) && !eof(rdry)
         # Read in the two records.
+        @info string("Reading Pair: ", p)
         read!(rdrx, lread)
         read!(rdry, rread)
+        p += 1
         
         llen = UInt64(FASTQ.seqlen(lread))
         rlen = UInt64(FASTQ.seqlen(rread))
