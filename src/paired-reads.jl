@@ -138,7 +138,7 @@ function PairedReads{A}(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
             read!(rdry, rread)
         catch ex
             if isa(ex, EOFError)
-                continue
+                break
             end
             rethrow()
         end

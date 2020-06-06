@@ -132,7 +132,7 @@ function LinkedReads{A}(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, n
                 read!(rvq, rvrec)
             catch ex
                 if isa(ex, EOFError)
-                    continue
+                    break
                 end
                 rethrow()
             end
