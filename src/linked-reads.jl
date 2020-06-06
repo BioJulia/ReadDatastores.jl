@@ -127,8 +127,15 @@ function LinkedReads{A}(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, n
         # Read in `chunksize` read pairs.
         chunkfill = 0
         while !eof(fwq) && !eof(rvq) && chunkfill < chunksize
-            read!(fwq, fwrec)
-            read!(rvq, rvrec)
+            try # TODO: Get to the bottom of why this is nessecery to fix Windows issues.
+                read!(fwq, fwrec)
+                read!(rvq, rvrec)
+            catch ex
+                if isa(ex, EOFError)
+                    break
+                end
+                rethrow()
+            end
             cd_i = chunk_data[chunkfill + 1]
             _extract_tag_and_sequences!(cd_i, fwrec, rvrec, max_read_len, format)
             if cd_i.tag != zero(UInt32)
@@ -232,7 +239,7 @@ function Base.open(::Type{LinkedReads{A}}, filename::String, name::Union{Symbol,
     
     read_tags = read_flat_vector(fd, UInt32)
     
-    return LinkedReads{A}(filename, isnothing(name) ? default_name : Symbol(name), default_name, max_read_len, chunksize, position(fd), read_tags, fd)
+    return LinkedReads{A}(filename, name === nothing ? default_name : Symbol(name), default_name, max_read_len, chunksize, position(fd), read_tags, fd)
 end
 
 @inline _read_data_begin(prds::LinkedReads) = prds.readpos_offset

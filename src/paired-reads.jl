@@ -126,14 +126,22 @@ function PairedReads{A}(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
     readpos = write(fd, UInt64(0)) + sizepos
     
     pairs = discarded = truncated = 0
+    p = 1
     
     @info "Building paired read datastore from FASTQ files"
     @info "Writing paired reads to datastore"
     
     while !eof(rdrx) && !eof(rdry)
         # Read in the two records.
-        read!(rdrx, lread)
-        read!(rdry, rread)
+        try # TODO: Get to the bottom of why this is nessecery to fix Windows issues.
+            read!(rdrx, lread)
+            read!(rdry, rread)
+        catch ex
+            if isa(ex, EOFError)
+                break
+            end
+            rethrow()
+        end
         
         llen = UInt64(FASTQ.seqlen(lread))
         rlen = UInt64(FASTQ.seqlen(rread))
@@ -178,7 +186,7 @@ function PairedReads{A}(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
     
     seek(fd, sizepos)
     write(fd, nreads)
-    
+    flush(fd)
     close(fd)
     
     @info "Done writing paired read sequences to datastore"
@@ -205,7 +213,7 @@ function Base.open(::Type{PairedReads{A}}, filename::String, name::Union{String,
     nreads = read(fd, UInt64)
     readpos_offset = position(fd)
     
-    return PairedReads{A}(filename, isnothing(name) ? default_name : Symbol(name), default_name,
+    return PairedReads{A}(filename, name === nothing ? default_name : Symbol(name), default_name,
                        max_read_len, chunksize, fragsize,
                        readpos_offset, nreads, orientation, fd)
 end

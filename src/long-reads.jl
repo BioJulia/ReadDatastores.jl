@@ -101,7 +101,14 @@ function LongReads{A}(rdr::FASTQ.Reader, outfile::String, name::Union{String,Sym
     @info "Writing long reads to datastore"
     
     while !eof(rdr)
-        read!(rdr, record)
+        try # TODO: Get to the bottom of why this is nessecery to fix Windows issues.
+            read!(rdr, record)
+        catch ex
+            if isa(ex, EOFError)
+                break
+            end
+            rethrow()
+        end
         seq_len = FASTQ.seqlen(record)
         if seq_len < min_size
             discarded = discarded + 1
@@ -143,7 +150,7 @@ function Base.open(::Type{LongReads{A}}, filename::String, name::Union{String,Sy
     default_name = Symbol(readuntil(fd, '\0'))
     seek(fd, fpos)
     read_to_file_position = read_flat_vector(fd, ReadPosSize)
-    return LongReads{A}(filename, isnothing(name) ? default_name : Symbol(name), default_name, read_to_file_position, fd)
+    return LongReads{A}(filename, name === nothing ? default_name : Symbol(name), default_name, read_to_file_position, fd)
 end
 
 ###
