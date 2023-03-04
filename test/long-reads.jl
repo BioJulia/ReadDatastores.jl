@@ -1,15 +1,15 @@
 @testset "Long read datastores" begin
-    function get_fastq_seqs(file)
+    function get_fastq_seqs(::Type{A}, file) where {A<:DNAAlphabet}
         seqs = map(open(FASTQ.Reader, file) do rdr
             collect(rdr)
         end) do rec
-            FASTQ.sequence(LongDNASeq, rec)
+            FASTQ.sequence(LongSequence{A}, rec)
         end
         return seqs
     end
     
     function check_round_trip(::Type{A}, FQ) where {A<:DNAAlphabet}
-        seqs = get_fastq_seqs(FQ)
+        seqs = get_fastq_seqs(A, FQ)
         fq = open(FASTQ.Reader, FQ)
         ds = LongReads{A}(fq, "human-nanopore", "human-nanopore", 0)
         ds2 = open(LongReads{A}, "human-nanopore.loseq")
