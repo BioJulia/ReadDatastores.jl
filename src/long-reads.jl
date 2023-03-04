@@ -109,7 +109,7 @@ function LongReads{A}(rdr::FASTQ.Reader, outfile::String, name::Union{String,Sym
             end
             rethrow()
         end
-        seq_len = FASTQ.seqlen(record)
+        seq_len = FASTQ.seqsize(record)
         if seq_len < min_size
             discarded = discarded + 1
             continue

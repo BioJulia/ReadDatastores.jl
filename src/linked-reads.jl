@@ -10,8 +10,8 @@ const LinkedTag = UInt32
 mutable struct LinkedReadData{A<:DNAAlphabet}
     seq1::LongSequence{A}
     seq2::LongSequence{A}
-    seqlen1::UInt64
-    seqlen2::UInt64
+    seqsize1::UInt64
+    seqsize2::UInt64
     tag::LinkedTag
 end
 
@@ -38,10 +38,10 @@ function _extract_tag_and_sequences!(current_data::LinkedReadData, fwrec::FASTQ.
         end
     end
     current_data.tag = newtag
-    current_data.seqlen1 = UInt64(min(max_read_len, FASTQ.seqlen(fwrec)))
-    current_data.seqlen2 = UInt64(min(max_read_len, FASTQ.seqlen(rvrec)))
-    copyto!(current_data.seq1, 1, fwrec, 1, current_data.seqlen1)
-    copyto!(current_data.seq2, 1, rvrec, 1, current_data.seqlen2)
+    current_data.seqsize1 = UInt64(min(max_read_len, FASTQ.seqsize(fwrec)))
+    current_data.seqsize2 = UInt64(min(max_read_len, FASTQ.seqsize(rvrec)))
+    copyto!(current_data.seq1, 1, fwrec, 1, current_data.seqsize1)
+    copyto!(current_data.seq2, 1, rvrec, 1, current_data.seqsize2)
 end
 
 struct LinkedReads{A<:DNAAlphabet} <: ShortReads{A}
@@ -150,9 +150,9 @@ function LinkedReads{A}(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, n
         for j in 1:chunkfill
             cd_j = chunk_data[j]
             write(chunk_fd, cd_j.tag)
-            write(chunk_fd, cd_j.seqlen1)
+            write(chunk_fd, cd_j.seqsize1)
             write(chunk_fd, cd_j.seq1.data)
-            write(chunk_fd, cd_j.seqlen2)
+            write(chunk_fd, cd_j.seqsize2)
             write(chunk_fd, cd_j.seq2.data)
         end
         close(chunk_fd)

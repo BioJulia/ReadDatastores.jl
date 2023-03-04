@@ -143,8 +143,8 @@ function PairedReads{A}(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
             rethrow()
         end
         
-        llen = UInt64(FASTQ.seqlen(lread))
-        rlen = UInt64(FASTQ.seqlen(rread))
+        llen = UInt64(FASTQ.seqsize(lread))
+        rlen = UInt64(FASTQ.seqsize(rread))
         # If either read is too short, discard them both.
         if llen < minsize || rlen < minsize
             discarded += 1
