@@ -41,7 +41,7 @@ end
 
 @inline function _load_sequence_data!(seq::LongSequence{A}, sb::DatastoreBuffer, offset::Integer) where {A<:DNAAlphabet}
     bufdata = buffer_array(sb)
-    seqdata = BioSequences.encoded_data(seq)
+    seqdata = seq.data
     GC.@preserve bufdata begin
         for i in eachindex(seqdata)
             seqdata[i] = unsafe_load(convert(Ptr{UInt64}, pointer(bufdata, offset + 1)))

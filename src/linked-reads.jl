@@ -121,7 +121,7 @@ function LinkedReads{A}(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, n
     fwrec = FASTQ.Record()
     rvrec = FASTQ.Record()
     chunk_data = [LinkedReadData{A}(max_read_len) for _ in 1:chunksize]
-    datachunksize = length(BioSequences.encoded_data(first(chunk_data).seq1))
+    datachunksize = length(first(chunk_data).seq1.data)
     
     while !eof(fwq) && !eof(rvq)
         # Read in `chunksize` read pairs.
@@ -151,9 +151,9 @@ function LinkedReads{A}(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, n
             cd_j = chunk_data[j]
             write(chunk_fd, cd_j.tag)
             write(chunk_fd, cd_j.seqlen1)
-            write(chunk_fd, BioSequences.encoded_data(cd_j.seq1))
+            write(chunk_fd, cd_j.seq1.data)
             write(chunk_fd, cd_j.seqlen2)
-            write(chunk_fd, BioSequences.encoded_data(cd_j.seq2))
+            write(chunk_fd, cd_j.seq2.data)
         end
         close(chunk_fd)
         push!(chunk_files, string("sorted_chunk_", length(chunk_files), ".data"))

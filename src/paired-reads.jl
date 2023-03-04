@@ -111,7 +111,7 @@ function PairedReads{A}(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
     rseq = LongSequence{A}(undef, maxsize)
     
     #chunksize::UInt64 = BioSequences.seq_data_len(DNAAlphabet{4}, maxsize)
-    chunksize::UInt64 = length(BioSequences.encoded_data(lseq))
+    chunksize::UInt64 = length(lseq.data)
     bps = UInt64(BioSequences.bits_per_symbol(A()))
     
     fd = open(outfile * ".prseq", "w")
