@@ -107,8 +107,8 @@ function PairedReads{A}(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
     # Create and allocate the sequence and record objects.
     lread = FASTQ.Record()
     rread = FASTQ.Record()
-    lseq = LongSequence{A}(maxsize)
-    rseq = LongSequence{A}(maxsize)
+    lseq = LongSequence{A}(undef, maxsize)
+    rseq = LongSequence{A}(undef, maxsize)
     
     #chunksize::UInt64 = BioSequences.seq_data_len(DNAAlphabet{4}, maxsize)
     chunksize::UInt64 = length(BioSequences.encoded_data(lseq))

@@ -16,7 +16,7 @@ mutable struct LinkedReadData{A<:DNAAlphabet}
 end
 
 Base.isless(a::LinkedReadData, b::LinkedReadData) = a.tag < b.tag
-LinkedReadData{A}(len) where {A<:DNAAlphabet} = LinkedReadData{A}(LongSequence{A}(len), LongSequence{A}(len), zero(UInt64), zero(UInt64), zero(LinkedTag))
+LinkedReadData{A}(len) where {A<:DNAAlphabet} = LinkedReadData{A}(LongSequence{A}(undef, len), LongSequence{A}(undef, len), zero(UInt64), zero(UInt64), zero(LinkedTag))
 
 const LinkedDS_Version = 0x0003
 

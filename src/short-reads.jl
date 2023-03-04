@@ -19,7 +19,7 @@ end
 
 @inline function Base.getindex(sr::ShortReads{A}, idx::Integer) where {A<:DNAAlphabet}
     @boundscheck checkbounds(sr, idx)
-    seq = eltype(sr)(max_read_length(sr))
+    seq = eltype(sr)(undef, max_read_length(sr))
     return inbounds_load_sequence!(sr, idx, seq)
 end
 
