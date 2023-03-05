@@ -101,14 +101,8 @@ function LongReads{A}(rdr::FASTQ.Reader, outfile::String, name::Union{String,Sym
     @info "Writing long reads to datastore"
     
     while !eof(rdr)
-        try # TODO: Get to the bottom of why this is nessecery to fix Windows issues.
-            read!(rdr, record)
-        catch ex
-            if isa(ex, EOFError)
-                break
-            end
-            rethrow()
-        end
+        read!(rdr, record)
+        
         seq_len = FASTQ.seqsize(record)
         if seq_len < min_size
             discarded = discarded + 1

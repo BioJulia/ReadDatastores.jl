@@ -127,15 +127,9 @@ function LinkedReads{A}(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, n
         # Read in `chunksize` read pairs.
         chunkfill = 0
         while !eof(fwq) && !eof(rvq) && chunkfill < chunksize
-            try # TODO: Get to the bottom of why this is nessecery to fix Windows issues.
-                read!(fwq, fwrec)
-                read!(rvq, rvrec)
-            catch ex
-                if isa(ex, EOFError)
-                    break
-                end
-                rethrow()
-            end
+            read!(fwq, fwrec)
+            read!(rvq, rvrec)
+
             cd_i = chunk_data[chunkfill + 1]
             _extract_tag_and_sequences!(cd_i, fwrec, rvrec, max_read_len, format)
             if cd_i.tag != zero(UInt32)
@@ -261,4 +255,3 @@ function read_tag(lr::LinkedReads, i::Integer)
     checkbounds(lr, i)
     inbounds_readtag(lr, i)
 end
-

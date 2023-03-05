@@ -133,15 +133,8 @@ function PairedReads{A}(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
     
     while !eof(rdrx) && !eof(rdry)
         # Read in the two records.
-        try # TODO: Get to the bottom of why this is nessecery to fix Windows issues.
-            read!(rdrx, lread)
-            read!(rdry, rread)
-        catch ex
-            if isa(ex, EOFError)
-                break
-            end
-            rethrow()
-        end
+        read!(rdrx, lread)
+        read!(rdry, rread)
         
         llen = UInt64(FASTQ.seqsize(lread))
         rlen = UInt64(FASTQ.seqsize(rread))
