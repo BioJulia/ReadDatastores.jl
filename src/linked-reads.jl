@@ -10,13 +10,13 @@ const LinkedTag = UInt32
 mutable struct LinkedReadData{A<:DNAAlphabet}
     seq1::LongSequence{A}
     seq2::LongSequence{A}
-    seqlen1::UInt64
-    seqlen2::UInt64
+    seqsize1::UInt64
+    seqsize2::UInt64
     tag::LinkedTag
 end
 
 Base.isless(a::LinkedReadData, b::LinkedReadData) = a.tag < b.tag
-LinkedReadData{A}(len) where {A<:DNAAlphabet} = LinkedReadData{A}(LongSequence{A}(len), LongSequence{A}(len), zero(UInt64), zero(UInt64), zero(LinkedTag))
+LinkedReadData{A}(len) where {A<:DNAAlphabet} = LinkedReadData{A}(LongSequence{A}(undef, len), LongSequence{A}(undef, len), zero(UInt64), zero(UInt64), zero(LinkedTag))
 
 const LinkedDS_Version = 0x0003
 
@@ -38,10 +38,10 @@ function _extract_tag_and_sequences!(current_data::LinkedReadData, fwrec::FASTQ.
         end
     end
     current_data.tag = newtag
-    current_data.seqlen1 = UInt64(min(max_read_len, FASTQ.seqlen(fwrec)))
-    current_data.seqlen2 = UInt64(min(max_read_len, FASTQ.seqlen(rvrec)))
-    copyto!(current_data.seq1, 1, fwrec, 1, current_data.seqlen1)
-    copyto!(current_data.seq2, 1, rvrec, 1, current_data.seqlen2)
+    current_data.seqsize1 = UInt64(min(max_read_len, FASTQ.seqsize(fwrec)))
+    current_data.seqsize2 = UInt64(min(max_read_len, FASTQ.seqsize(rvrec)))
+    copyto!(current_data.seq1, 1, fwrec, 1, current_data.seqsize1)
+    copyto!(current_data.seq2, 1, rvrec, 1, current_data.seqsize2)
 end
 
 struct LinkedReads{A<:DNAAlphabet} <: ShortReads{A}
@@ -121,7 +121,7 @@ function LinkedReads{A}(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, n
     fwrec = FASTQ.Record()
     rvrec = FASTQ.Record()
     chunk_data = [LinkedReadData{A}(max_read_len) for _ in 1:chunksize]
-    datachunksize = length(BioSequences.encoded_data(first(chunk_data).seq1))
+    datachunksize = length(first(chunk_data).seq1.data)
     
     while !eof(fwq) && !eof(rvq)
         # Read in `chunksize` read pairs.
@@ -150,10 +150,10 @@ function LinkedReads{A}(fwq::FASTQ.Reader, rvq::FASTQ.Reader, outfile::String, n
         for j in 1:chunkfill
             cd_j = chunk_data[j]
             write(chunk_fd, cd_j.tag)
-            write(chunk_fd, cd_j.seqlen1)
-            write(chunk_fd, BioSequences.encoded_data(cd_j.seq1))
-            write(chunk_fd, cd_j.seqlen2)
-            write(chunk_fd, BioSequences.encoded_data(cd_j.seq2))
+            write(chunk_fd, cd_j.seqsize1)
+            write(chunk_fd, cd_j.seq1.data)
+            write(chunk_fd, cd_j.seqsize2)
+            write(chunk_fd, cd_j.seq2.data)
         end
         close(chunk_fd)
         push!(chunk_files, string("sorted_chunk_", length(chunk_files), ".data"))

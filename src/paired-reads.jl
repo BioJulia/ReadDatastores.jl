@@ -107,11 +107,11 @@ function PairedReads{A}(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
     # Create and allocate the sequence and record objects.
     lread = FASTQ.Record()
     rread = FASTQ.Record()
-    lseq = LongSequence{A}(maxsize)
-    rseq = LongSequence{A}(maxsize)
+    lseq = LongSequence{A}(undef, maxsize)
+    rseq = LongSequence{A}(undef, maxsize)
     
     #chunksize::UInt64 = BioSequences.seq_data_len(DNAAlphabet{4}, maxsize)
-    chunksize::UInt64 = length(BioSequences.encoded_data(lseq))
+    chunksize::UInt64 = length(lseq.data)
     bps = UInt64(BioSequences.bits_per_symbol(A()))
     
     fd = open(outfile * ".prseq", "w")
@@ -143,8 +143,8 @@ function PairedReads{A}(rdrx::FASTQ.Reader, rdry::FASTQ.Reader,
             rethrow()
         end
         
-        llen = UInt64(FASTQ.seqlen(lread))
-        rlen = UInt64(FASTQ.seqlen(rread))
+        llen = UInt64(FASTQ.seqsize(lread))
+        rlen = UInt64(FASTQ.seqsize(rread))
         # If either read is too short, discard them both.
         if llen < minsize || rlen < minsize
             discarded += 1

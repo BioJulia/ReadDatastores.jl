@@ -7,8 +7,8 @@ abstract type ShortReads{A<:DNAAlphabet} <: ReadDatastore{LongSequence{A}} end
 @inline function inbounds_load_sequence!(ds::ShortReads{A}, i::Integer, seq::LongSequence{A}) where {A<:DNAAlphabet}
     pos = _offset_of_sequence(ds, i)
     seek(stream(ds), pos)
-    seqlen = read(stream(ds), UInt64)
-    resize!(seq, seqlen)
+    seqsize = read(stream(ds), UInt64)
+    resize!(seq, seqsize)
     return _load_sequence_data!(ds, seq)
 end
 
@@ -19,7 +19,7 @@ end
 
 @inline function Base.getindex(sr::ShortReads{A}, idx::Integer) where {A<:DNAAlphabet}
     @boundscheck checkbounds(sr, idx)
-    seq = eltype(sr)(max_read_length(sr))
+    seq = eltype(sr)(undef, max_read_length(sr))
     return inbounds_load_sequence!(sr, idx, seq)
 end
 

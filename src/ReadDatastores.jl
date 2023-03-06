@@ -241,7 +241,7 @@ data blob (i.e. `sizeof(BioSequences.encoded_data(seq))`).
       sequence type.
 """
 function _load_sequence_data!(ds::ReadDatastore{T}, seq::T) where {T<:LongSequence}
-    seqdata = BioSequences.encoded_data(seq)
+    seqdata = seq.data
     GC.@preserve seqdata unsafe_read(stream(ds), pointer(seqdata), sizeof(seqdata))
     return seq
 end

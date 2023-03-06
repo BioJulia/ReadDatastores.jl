@@ -94,7 +94,7 @@ function LongReads{A}(rdr::FASTQ.Reader, outfile::String, name::Union{String,Sym
     writestring(ofs, String(name))
     
     record = FASTQ.Record()
-    seq = LongSequence{A}(min_size)
+    seq = LongSequence{A}(undef, min_size)
     
     @info "Building long read datastore from FASTQ file"
     
@@ -109,7 +109,7 @@ function LongReads{A}(rdr::FASTQ.Reader, outfile::String, name::Union{String,Sym
             end
             rethrow()
         end
-        seq_len = FASTQ.seqlen(record)
+        seq_len = FASTQ.seqsize(record)
         if seq_len < min_size
             discarded = discarded + 1
             continue
@@ -186,6 +186,6 @@ end
 @inline function Base.getindex(lrds::LongReads, idx::Integer)
     @boundscheck checkbounds(lrds, idx)
     pos_size = _inbounds_index_of_sequence(lrds, idx)
-    seq = eltype(lrds)(pos_size.sequence_size)
+    seq = eltype(lrds)(undef, pos_size.sequence_size)
     return inbounds_load_sequence!(lrds, pos_size, seq)
 end

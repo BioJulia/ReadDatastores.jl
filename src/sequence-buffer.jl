@@ -41,7 +41,7 @@ end
 
 @inline function _load_sequence_data!(seq::LongSequence{A}, sb::DatastoreBuffer, offset::Integer) where {A<:DNAAlphabet}
     bufdata = buffer_array(sb)
-    seqdata = BioSequences.encoded_data(seq)
+    seqdata = seq.data
     GC.@preserve bufdata begin
         for i in eachindex(seqdata)
             seqdata[i] = unsafe_load(convert(Ptr{UInt64}, pointer(bufdata, offset + 1)))
@@ -74,7 +74,7 @@ end
     buffer_offset = file_offset - buffer_position(sb)
     sequence_length = unsafe_load(convert(Ptr{UInt64}, pointer(buffer_array(sb), buffer_offset + 1)))
     buffer_offset = buffer_offset + sizeof(UInt64)
-    seq = eltype(sb)(sequence_length)
+    seq = eltype(sb)(undef, sequence_length)
     
     return _load_sequence_data!(seq, sb, buffer_offset)
 end
@@ -125,7 +125,7 @@ end
     @boundscheck checkbounds(sb, idx)
     file_index = _inbounds_index_of_sequence(datastore(sb), idx)
     _check_for_buffer_refresh!(sb, file_index)
-    seq = eltype(sb)(file_index.sequence_size)
+    seq = eltype(sb)(undef, file_index.sequence_size)
     buffer_offset = file_index.offset - buffer_position(sb)
     return _load_sequence_data!(seq, sb, buffer_offset)
 end
